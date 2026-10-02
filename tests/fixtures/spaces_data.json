@@ -1,0 +1,5 @@
+{"data": {"sp_home": {"space_id": "sp_home", "address": "10 Example Street, London, EC1A 1BB", "rooms": {
+  "Kitchen": [{"ts": "2026-10-02T09:59:30Z", "device_id": "351103920000001", "tmp_c": 21.5, "hum_c": 45.2, "co": 0.9, "co_avg": 0.4, "co2": 410.0, "voc": 0.12, "iaq": 37, "iaq_ac": 3, "bat_t_pc": 88, "mains_on": 1, "dcv": 2}],
+  "Bedroom": [{"ts": "2026-10-02T09:58:10Z", "device_id": "351103920000002", "tmp_c": 19.8, "co": 0.0, "co2": 620.0, "voc": 0.08, "iaq": 52, "bat_t_pc": 100, "mains_on": 1, "dcv": 2}],
+  "Hallway": [{"ts": "2026-10-02T09:57:00Z", "device_id": "351103920000003", "tmp_c": 20.1, "hum_c": 50.0, "co": 0.0, "dcv": 2}]
+}}}}

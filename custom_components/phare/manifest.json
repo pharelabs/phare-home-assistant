@@ -1,0 +1,13 @@
+{
+  "domain": "phare",
+  "name": "Phare Protect",
+  "codeowners": ["@esrabrahmii"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/pharelabs/phare-home-assistant",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/pharelabs/phare-home-assistant/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

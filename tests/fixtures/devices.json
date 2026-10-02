@@ -1,0 +1,4 @@
+{"data": [
+ {"device_id": "351103920000001", "ts": "2026-09-30T12:00:00Z", "name": "Kitchen sensor", "room": "Kitchen", "hw": "10", "fw_esp": "v2.1.0", "armed": false, "space_id": "sp_home", "address": "10 Example Street, London, EC1A 1BB"},
+ {"device_id": "351103920000002", "ts": "2026-09-30T12:00:00Z", "name": "Bedroom sensor", "room": "Bedroom", "hw": 9, "fw_esp": "v2.0.4", "armed": false, "space_id": "sp_home", "address": "10 Example Street, London, EC1A 1BB"}
+], "meta": {"total_count": 2}}

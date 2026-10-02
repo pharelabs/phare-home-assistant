@@ -1,0 +1,1 @@
+{"data": [{"space_id": "sp_home", "ts": "2026-09-01T10:00:00Z", "address": "10 Example Street, London, EC1A 1BB", "address_lat": 51.5074, "address_lng": -0.1278, "address_tz": "Europe/London", "armed": false, "remote_ic": false, "owner": "auth0|u1", "space_type": "APT", "added_by": "auth0|u1"}], "meta": {"total_count": 1}}

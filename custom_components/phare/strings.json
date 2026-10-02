@@ -1,0 +1,66 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect Phare Protect",
+        "description": "Create a personal access token in the Phare Protect app (Settings → API tokens) and paste it here. A token with the control scope lets Home Assistant arm, test and silence your devices.",
+        "data": {
+          "token": "Personal access token",
+          "base_url": "API base URL"
+        },
+        "data_description": {
+          "base_url": "Leave as is unless Phare Labs told you otherwise."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Your Phare token no longer works",
+        "description": "It was revoked, expired, or your plan changed. Create a new token in the Phare Protect app and paste it here.",
+        "data": {
+          "token": "Personal access token"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "The token was refused. Check it was copied in full and has not been revoked.",
+      "cannot_connect": "Could not reach the Phare API.",
+      "https_required": "The API base URL must start with https://.",
+      "unknown": "Unexpected error. Check the logs."
+    },
+    "abort": {
+      "already_configured": "This Phare account is already set up.",
+      "reauth_successful": "Token updated.",
+      "wrong_account": "That token belongs to a different Phare account."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": { "name": "Temperature" },
+      "humidity": { "name": "Humidity" },
+      "carbon_monoxide": { "name": "Carbon monoxide" },
+      "carbon_dioxide": { "name": "Carbon dioxide" },
+      "voc": { "name": "Volatile organic compounds" },
+      "air_quality": { "name": "Air quality index" },
+      "battery": { "name": "Battery" }
+    },
+    "binary_sensor": {
+      "connectivity": { "name": "Connectivity" },
+      "alert_co": { "name": "Carbon monoxide alarm" },
+      "alert_fire": { "name": "Smoke alarm" },
+      "alert_mvmt": { "name": "Movement" },
+      "alert_tmp": { "name": "Temperature alert" },
+      "alert_hum": { "name": "Humidity alert" },
+      "alert_bp": { "name": "Pipe burst alert" },
+      "alert_flt": { "name": "Device fault" },
+      "alert_pwr": { "name": "Mains power lost" },
+      "alert_bat": { "name": "Battery alert" }
+    },
+    "alarm_control_panel": {
+      "break_in": { "name": "Break-in alarm" }
+    },
+    "button": {
+      "test": { "name": "Test" },
+      "identify": { "name": "Identify" },
+      "silence": { "name": "Silence" }
+    }
+  }
+}

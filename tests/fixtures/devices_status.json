@@ -1,0 +1,4 @@
+{"data": [
+ {"device_id": "351103920000001", "is_online": true, "embargo_countdown": 0, "name": "Kitchen sensor", "room": "Kitchen", "property_address": "10 Example Street, London, EC1A 1BB", "space_id": "sp_home"},
+ {"device_id": "351103920000002", "is_online": false, "embargo_countdown": 0, "name": "Bedroom sensor", "room": "Bedroom", "space_id": "sp_home"}
+], "meta": {"total_devices": 2, "online_devices": 1, "online_percentage": 50, "timestamp": "2026-10-02T10:00:00.123456"}}
