@@ -1,0 +1,61 @@
+{
+ "data": [
+  {
+   "space_id": "sp_home1",
+   "ts": "2026-07-22T11:41:43Z",
+   "address": "10 Example Street, London, EC1A 1BB",
+   "address_lat": 51.5074,
+   "address_lng": -0.1278,
+   "address_tz": "Europe/London",
+   "armed": false,
+   "remote_ic": false,
+   "owner": "auth0|6957b01d2529aaa8d853e210",
+   "space_type": "residential",
+   "added_by": "auth0|6957b01d2529aaa8d853e210"
+  },
+  {
+   "space_id": "sp_home2",
+   "ts": "2026-07-22T13:12:22Z",
+   "name": "Test name",
+   "address": "22 Sample Road, Manchester, M1 1AA",
+   "address_lat": 51.5074,
+   "address_lng": -0.1278,
+   "address_tz": "America/Caracas",
+   "armed": false,
+   "remote_ic": false,
+   "owner": "auth0|6957b01d2529aaa8d853e210",
+   "space_type": "residential",
+   "added_by": "auth0|6957b01d2529aaa8d853e210"
+  },
+  {
+   "space_id": "sp_home3",
+   "ts": "2026-07-22T11:19:16Z",
+   "address": "5 Test Lane, Bristol, BS1 1AA",
+   "address_lat": 51.5074,
+   "address_lng": -0.1278,
+   "address_tz": "America/Bogota",
+   "armed": false,
+   "remote_ic": false,
+   "owner": "auth0|6957b01d2529aaa8d853e210",
+   "space_type": "residential",
+   "added_by": "auth0|6957b01d2529aaa8d853e210"
+  },
+  {
+   "space_id": "sp_home4",
+   "ts": "2026-07-22T13:04:11Z",
+   "name": "Test name",
+   "address": "8 Fixture Close, Leeds, LS1 1AA",
+   "address_lat": 51.5074,
+   "address_lng": -0.1278,
+   "address_tz": "America/Guayaquil",
+   "armed": false,
+   "remote_ic": false,
+   "owner": "auth0|6957b01d2529aaa8d853e210",
+   "space_type": "residential",
+   "added_by": "auth0|6957b01d2529aaa8d853e210"
+  }
+ ],
+ "meta": {
+  "total_count": 4
+ }
+}

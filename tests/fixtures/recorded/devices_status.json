@@ -1,0 +1,19 @@
+{
+ "data": [
+  {
+   "device_id": "351103920000001",
+   "is_online": false,
+   "embargo_countdown": 0,
+   "name": "Test name",
+   "property_address": "10 Example Street, London, EC1A 1BB",
+   "space_id": "sp_home1",
+   "room": "Hallway"
+  }
+ ],
+ "meta": {
+  "total_devices": 1,
+  "online_devices": 0,
+  "online_percentage": 0,
+  "timestamp": "2026-10-02T13:58:52.782771"
+ }
+}

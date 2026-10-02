@@ -1,0 +1,96 @@
+{
+ "data": {
+  "sp_home3": {
+   "space_id": "sp_home3",
+   "address": "5 Test Lane, Bristol, BS1 1AA",
+   "rooms": {}
+  },
+  "sp_home4": {
+   "space_id": "sp_home4",
+   "address": "8 Fixture Close, Leeds, LS1 1AA",
+   "name": "Test home",
+   "rooms": {}
+  },
+  "sp_home1": {
+   "space_id": "sp_home1",
+   "address": "10 Example Street, London, EC1A 1BB",
+   "rooms": {
+    "Kitchen": [
+     {
+      "rsrp": -108.0,
+      "iaq_s": 71.4,
+      "p_fire": 0.0,
+      "tmp_c": 27.061,
+      "gas_c": 4.83,
+      "sound": 53.5634,
+      "iaq_ac": 3.0,
+      "mains_v": 12.01,
+      "bat_i": 0.0,
+      "pd_b": 560.0,
+      "co_avg": 1.245,
+      "bat_t_pc": 59.2,
+      "pres_r": 1016.3,
+      "bat_tdie": 24.0,
+      "gas_pc_ac": 3.0,
+      "co2": 702.4,
+      "hum_c": 43.7433,
+      "voc": 0.935,
+      "gas_pc": 60.3,
+      "bat_v": 4.29,
+      "mvmt_c": 1.0,
+      "co": 1.16,
+      "light": 240.1,
+      "voc_ac": 3.0,
+      "mains_on": 1.0,
+      "co2_ac": 3.0,
+      "iaq": 72.6,
+      "pd_ir": 930.0,
+      "ts": "2026-08-12T09:32:00Z",
+      "device_id": "351103920000002"
+     }
+    ],
+    "Hallway": [
+     {
+      "seeded_for_demo": true,
+      "rsrp": -105.0,
+      "iaq_s": 82.4,
+      "p_fire": 0.0,
+      "tmp_c": 20.548,
+      "gas_c": 5.199,
+      "sound": 36.9041,
+      "iaq_ac": 3.0,
+      "mains_v": 12.023,
+      "bat_i": 0.0,
+      "pd_b": 559.0,
+      "co_avg": 1.179,
+      "bat_t_pc": 58.0,
+      "pres_r": 1015.8,
+      "bat_tdie": 24.0,
+      "gas_pc_ac": 3.0,
+      "co2": 808.8,
+      "hum_c": 50.713,
+      "voc": 0.963,
+      "gas_pc": 61.3,
+      "bat_v": 4.251,
+      "mvmt_c": 0.0,
+      "co": 1.102,
+      "light": 1.2,
+      "voc_ac": 3.0,
+      "mains_on": 1.0,
+      "co2_ac": 3.0,
+      "iaq": 83.6,
+      "pd_ir": 909.0,
+      "ts": "2026-09-14T22:20:00Z",
+      "device_id": "351103920000001"
+     }
+    ]
+   }
+  },
+  "sp_home2": {
+   "space_id": "sp_home2",
+   "address": "22 Sample Road, Manchester, M1 1AA",
+   "name": "Test home",
+   "rooms": {}
+  }
+ }
+}

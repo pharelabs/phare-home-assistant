@@ -1,0 +1,31 @@
+{
+ "data": {
+  "user_id": "auth0|6957b01d2529aaa8d853e210",
+  "roles": [
+   "Admin",
+   "God",
+   "Support"
+  ],
+  "alert_mains": false,
+  "temperature_unit": "celsius",
+  "alert_otau": false,
+  "onboarded": true,
+  "alert_mold": false,
+  "alert_fault": false,
+  "name": "Test Account",
+  "language": "en",
+  "alert_temp": false,
+  "alert_hstroke": false,
+  "alert_bat": false,
+  "alert_mov": false,
+  "membership": "pro",
+  "alert_pipeb": false,
+  "alert_iaq": false,
+  "alert_sound": false,
+  "alert_smoke": true,
+  "region": "UK",
+  "alert_co": true,
+  "notify_push": true,
+  "alert_hum": false
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "data": [
+  {
+   "device_id": "351103920000001",
+   "ts": "2026-07-24T14:03:51Z",
+   "name": "Test name",
+   "room": "Hallway",
+   "hw": "7",
+   "iccid": "REDACTED",
+   "fw_esp": "v0.6.2",
+   "fw_efr": "v0.6.1-7-gf7e18ba",
+   "fw_nrf": "v0.6.2",
+   "event": "Device installed in Hallway and name changed",
+   "armed": false,
+   "space_id": "sp_home1",
+   "address": "10 Example Street, London, EC1A 1BB"
+  }
+ ],
+ "meta": {
+  "total_count": 1
+ }
+}

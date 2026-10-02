@@ -173,3 +173,55 @@ def test_timestamps_parse_in_the_forms_the_api_writes():
     assert model.parse_ts("2026-10-02T09:50:00.123Z") is not None
     assert model.parse_ts("2026-10-02T09:50:00+00:00") is not None
     assert model.parse_ts("") is None and model.parse_ts(None) is None and model.parse_ts(12) is None
+
+
+# ── the recorded sandbox payloads (anonymised; see fixtures/recorded/README.md) ────────
+
+def recorded(name: str):
+    return json.loads((FIXTURES / "recorded" / name).read_text())
+
+
+@pytest.fixture
+def recorded_data():
+    return model.build_data(
+        recorded("spaces.json")["data"],
+        recorded("devices.json")["data"],
+        recorded("spaces_data.json")["data"],
+        recorded("devices_status.json")["data"],
+        model.merge_alerts({}, recorded("alerts.json")["data"]),
+    )
+
+
+def test_recorded_readings_use_the_devices_field_names(recorded_data):
+    with_readings = [d for d in recorded_data.devices.values() if d.readings]
+    assert len(with_readings) == 2
+    for device in with_readings:
+        assert {"tmp_c", "hum_c", "co", "co2", "voc", "iaq", "bat_t_pc", "mains_on"} <= set(device.readings)
+        assert "temperature" not in device.readings, "the published spec's names are not what the API sends"
+        for kind in ("temperature", "humidity", "carbon_monoxide", "carbon_dioxide", "voc", "air_quality", "battery"):
+            assert model.pick_reading(device.readings, kind) is not None, kind
+
+
+def test_recorded_token_sees_one_device_directly_and_one_through_its_home(recorded_data):
+    """/v1/devices and /v1/devices/status cover only the directly assigned device; the second
+    device exists only in the readings, so it has a room but no hardware revision or status."""
+    direct = [d for d in recorded_data.devices.values() if d.hw is not None]
+    via_home = [d for d in recorded_data.devices.values() if d.hw is None]
+    assert len(direct) == 1 and len(via_home) == 1
+    assert direct[0].hw == 7 and direct[0].online is False and direct[0].firmware.startswith("v")
+    assert via_home[0].online is None and via_home[0].room and via_home[0].space_id
+    assert via_home[0].space_id == direct[0].space_id, "both sit in the same home"
+
+
+def test_recorded_homes_carry_their_armed_flag_and_optional_name(recorded_data):
+    assert len(recorded_data.spaces) == 4
+    assert all(space.armed is not None for space in recorded_data.spaces.values()), "/v1/spaces listed every home"
+    assert sum(1 for s in recorded_data.spaces.values() if s.name) == 2, "name is optional on a home"
+    home = next(s for s in recorded_data.spaces.values() if s.device_ids)
+    assert len(home.device_ids) == 2
+
+
+def test_recorded_timestamps_parse(recorded_data):
+    for device in recorded_data.devices.values():
+        if device.reading_ts:
+            assert model.parse_ts(device.reading_ts) is not None, device.reading_ts

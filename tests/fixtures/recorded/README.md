@@ -1,0 +1,1 @@
+Recorded from the sandbox API on 2026-10-02 with a read-only token, then anonymised: device ids, space ids, addresses, coordinates, names, the account id and the SIM id are replaced; every field name, type and shape is as the API returned it. `alerts.json` was empty on the day (no alerts in the 30-day window), so the alert scenarios live in the synthetic set one level up.
