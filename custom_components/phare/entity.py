@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.util import dt as dt_util
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, HW_MODEL, MANUFACTURER
@@ -43,6 +44,7 @@ class PhareDeviceEntity(CoordinatorEntity[PhareCoordinator]):
     @property
     def available(self) -> bool:
         # An offline device keeps its last reading on screen only as "unavailable", never as a
-        # live value: for fire and CO that distinction is the whole point.
+        # live value: for fire and CO that distinction is the whole point. For devices the status
+        # endpoint does not cover, a reading older than STALE_AFTER counts as offline.
         device = self.device
-        return super().available and device is not None and device.online is not False
+        return super().available and device is not None and device.is_reachable(dt_util.utcnow())
