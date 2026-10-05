@@ -16,6 +16,8 @@ from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 
+from custom_components.phare.diagnostics import async_get_config_entry_diagnostics
+
 from custom_components.phare.const import (
     CONF_BASE_URL,
     CONF_TOKEN,
@@ -71,16 +73,24 @@ def signed(secret: str, payload: dict, *, ts: int | None = None) -> tuple[bytes,
     }
 
 
-def alert_payload(device_id: str, code: str, *, stage: str = "new", delivery: str = "dlv_1") -> dict:
+def alert_payload(device_id: str, code: str, *, stage: str = "new", delivery: str = "dlv_1",
+                  ts: str = "2026-10-02T09:59:30Z") -> dict:
     return {
         "event": "alert",
         "delivery_id": delivery,
-        "ts": "2026-10-02T09:59:30Z",
+        "ts": ts,
         "data": {
             "alert_id": f"alert_{device_id}_x", "type_code": code, "type": "Carbon Monoxide",
-            "event": "CO detected", "stage": stage, "ts": "2026-10-02T09:59:30Z", "device_id": device_id,
+            "event": "CO detected", "stage": stage, "ts": ts, "device_id": device_id,
         },
     }
+
+
+async def post(hass, client, entry, payload, secret=SECRET, **kw):
+    body, headers = signed(secret, payload, **kw)
+    resp = await client.post(f"/api/webhook/{entry.data[CONF_WEBHOOK_ID]}", data=body, headers=headers)
+    await hass.async_block_till_done()
+    return resp
 
 
 async def test_setup_registers_https_webhook_and_keeps_the_secret(hass, aioclient_mock, freezer) -> None:
@@ -183,3 +193,67 @@ async def test_removing_the_entry_deregisters_with_the_api(hass, aioclient_mock,
     await hass.async_block_till_done()
     calls = registration_calls(aioclient_mock)
     assert calls[-1][2] == {"notify_webhook": False, "webhook_url": None}
+
+
+async def test_resolution_with_the_same_delivery_id_is_not_a_duplicate(hass, aioclient_mock, freezer, hass_client_no_auth) -> None:
+    # The API's delivery id is per alert and recipient; the new and resolved records share it.
+    entry = await setup_with_webhook(hass, aioclient_mock, freezer)
+    sensor = entity_id(hass, "binary_sensor", f"{KITCHEN}_alert_fire")
+    events = []
+    hass.bus.async_listen(EVENT_ALERT, lambda e: events.append(e))
+    client = await hass_client_no_auth()
+    assert (await post(hass, client, entry, alert_payload(KITCHEN, "fire", delivery="dlv_a"))).status == 200
+    assert hass.states.get(sensor).state == STATE_ON
+    resolved = alert_payload(KITCHEN, "fire", delivery="dlv_a", stage="resolved", ts="2026-10-02T09:59:50Z")
+    assert (await post(hass, client, entry, resolved)).status == 200
+    assert hass.states.get(sensor).state == STATE_OFF
+    assert [e.data["stage"] for e in events] == ["new", "resolved"]
+
+
+async def test_reload_keeps_the_webhook_and_rotates_an_unreturned_secret(hass, aioclient_mock, freezer, hass_client_no_auth) -> None:
+    entry = await setup_with_webhook(hass, aioclient_mock, freezer)
+    webhook_id = entry.data[CONF_WEBHOOK_ID]
+    # Second registration of the same URL: the API returns no secret.
+    aioclient_mock.clear_requests()
+    mock_api(aioclient_mock)
+    aioclient_mock.post(f"{BASE}/v1/user/settings", json={"data": {"user_id": "auth0|x", "notify_webhook": True}})
+    aioclient_mock.post(f"{BASE}/v1/user/webhook/rotate", json={"data": {"user_id": "auth0|x", "webhook_secret": "ab" * 32}})
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.data[CONF_WEBHOOK_ID] == webhook_id
+    assert entry.data[CONF_WEBHOOK_SECRET] == "ab" * 32
+    assert registration_calls(aioclient_mock)[0][2]["webhook_url"].endswith(webhook_id)
+    # Exactly one live handler, signing with the rotated secret.
+    client = await hass_client_no_auth()
+    assert (await post(hass, client, entry, alert_payload(KITCHEN, "fire"), secret="ab" * 32)).status == 200
+    assert (await post(hass, client, entry, alert_payload(KITCHEN, "fire", delivery="dlv_2"), secret=SECRET)).status == 401
+
+
+async def test_diagnostics_redact_the_webhook_secret(hass, aioclient_mock, freezer) -> None:
+    entry = await setup_with_webhook(hass, aioclient_mock, freezer)
+    dump = await async_get_config_entry_diagnostics(hass, entry)
+    assert dump["entry"][CONF_WEBHOOK_SECRET] == "**REDACTED**"
+    assert dump["entry"][CONF_WEBHOOK_ID] == "**REDACTED**"
+    assert dump["entry"][CONF_TOKEN] == "**REDACTED**"
+
+
+async def test_url_refused_by_the_api_does_not_blame_the_token(hass, aioclient_mock, freezer, caplog) -> None:
+    entry = await setup_with_webhook(
+        hass, aioclient_mock, freezer,
+        register={"status": 400, "json": {"error": "webhook_url hostname does not resolve"}},
+    )
+    assert entry.state is ConfigEntryState.LOADED
+    assert "hostname does not resolve" in caplog.text
+    assert "control scope" not in caplog.text
+
+
+async def test_losing_the_external_url_tells_the_api(hass, aioclient_mock, freezer) -> None:
+    entry = await setup_with_webhook(hass, aioclient_mock, freezer)
+    aioclient_mock.clear_requests()
+    mock_api(aioclient_mock)
+    aioclient_mock.post(f"{BASE}/v1/user/settings", json={"data": {}})
+    await async_process_ha_core_config(hass, {"external_url": "http://ha.local:8123"})
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert registration_calls(aioclient_mock)[-1][2] == {"notify_webhook": False, "webhook_url": None}

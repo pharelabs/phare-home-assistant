@@ -29,7 +29,7 @@ from homeassistant.components import cloud, webhook
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.network import NoURLAvailableError
 
-from .api import PhareApiError, PhareConnectionError
+from .api import PhareApiError, PhareAuthError, PhareConnectionError
 from .const import (
     CONF_CLOUDHOOK,
     CONF_WEBHOOK_ID,
@@ -101,17 +101,23 @@ async def async_register(hass: HomeAssistant, entry: PhareConfigEntry) -> bool:
             "Phare alerts arrive by polling: Home Assistant has no https external URL (or Nabu Casa) "
             "to receive pushed alerts on"
         )
+        if entry.data.get(CONF_WEBHOOK_ID):
+            # Registered on an earlier setup: tell the API, or it keeps posting into the void.
+            await async_deregister_remote(hass, entry, coordinator.client)
         return False
     url, is_cloudhook = located
 
     try:
         result = await coordinator.client.update_settings({"notify_webhook": True, "webhook_url": url})
-    except PhareApiError as err:
+    except PhareAuthError as err:
         _LOGGER.info(
             "Phare alerts arrive by polling: the API refused the webhook registration (%s). "
             "A token needs the control scope to register one",
             err.message,
         )
+        return False
+    except PhareApiError as err:
+        _LOGGER.info("Phare alerts arrive by polling: the API refused the webhook URL (%s)", err.message)
         return False
     except PhareConnectionError as err:
         _LOGGER.warning("Phare webhook registration failed, staying on polling: %s", err)
@@ -121,17 +127,19 @@ async def async_register(hass: HomeAssistant, entry: PhareConfigEntry) -> bool:
     if is_cloudhook:
         data["cloudhook_url"] = url
     secret = result.get("webhook_secret") if isinstance(result, dict) else None
-    if secret:
-        data[CONF_WEBHOOK_SECRET] = secret
-    elif not entry.data.get(CONF_WEBHOOK_SECRET):
-        # The API already had this URL and so returned no secret, but we have none: rotate.
+    if not secret:
+        # The API already had this URL and so returned no secret. Rotate rather than trust the
+        # one stored here: an entry restored from a backup, or a secret rotated elsewhere, would
+        # otherwise fail every signature until the API switched the channel off, and the
+        # recovery that email suggests is exactly this reload.
         try:
-            data[CONF_WEBHOOK_SECRET] = await coordinator.client.rotate_webhook_secret()
+            secret = await coordinator.client.rotate_webhook_secret()
         except (PhareApiError, PhareConnectionError) as err:
             _LOGGER.warning("Phare webhook registered but no secret could be obtained: %s", err)
             return False
-        if not data[CONF_WEBHOOK_SECRET]:
+        if not secret:
             return False
+    data[CONF_WEBHOOK_SECRET] = secret
     hass.config_entries.async_update_entry(entry, data=data)
 
     webhook.async_register(hass, DOMAIN, entry.title, webhook_id, _make_handler(entry), allowed_methods=["POST"])
@@ -163,7 +171,7 @@ async def async_deregister_remote(hass: HomeAssistant, entry: PhareConfigEntry, 
 
 
 def _make_handler(entry: PhareConfigEntry):
-    seen: deque[str] = deque(maxlen=WEBHOOK_DEDUPE_SIZE)
+    seen: deque[tuple[str, str, str]] = deque(maxlen=WEBHOOK_DEDUPE_SIZE)
 
     async def handle(hass: HomeAssistant, webhook_id: str, request: web.Request) -> web.Response:
         body = await request.read()
@@ -185,11 +193,13 @@ def _make_handler(entry: PhareConfigEntry):
         if not isinstance(payload, dict) or payload.get("event") != "alert":
             return web.Response(status=400, text="unexpected event")
         delivery = str(payload.get("delivery_id") or request.headers.get(HEADER_DELIVERY) or "")
-        if delivery and delivery in seen:
+        alert: dict[str, Any] = payload.get("data") or {}
+        # One alert carries several records (new, then resolved); a repeat is the same record.
+        record = (delivery, str(alert.get("stage")), str(alert.get("ts")))
+        if delivery and record in seen:
             return web.Response(status=200, text="duplicate")
         if delivery:
-            seen.append(delivery)
-        alert: dict[str, Any] = payload.get("data") or {}
+            seen.append(record)
         if entry.runtime_data.apply_pushed_alert(alert):
             hass.bus.async_fire(EVENT_ALERT, {"entry_id": entry.entry_id, "delivery_id": delivery, **alert})
         return web.Response(status=200, text="ok")
