@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Any
 
 from aiohttp import web
 
-from homeassistant.components import cloud, webhook
+from homeassistant.components import webhook
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.network import NoURLAvailableError
 
@@ -70,9 +70,20 @@ def verify(secret: str, timestamp: str | None, body: bytes, given: str | None, *
     return None
 
 
+def _cloud():
+    """Nabu Casa's helpers, loaded on demand: importing homeassistant.components.cloud pulls in
+    camera support (turbojpeg) that a plain test environment does not carry."""
+    try:
+        from homeassistant.components import cloud
+    except ImportError:
+        return None
+    return cloud
+
+
 async def _webhook_url(hass: HomeAssistant, entry: PhareConfigEntry, webhook_id: str) -> tuple[str, bool] | None:
     """(url, is_cloudhook), or None when Home Assistant has no https URL to offer."""
-    if cloud.async_active_subscription(hass):
+    cloud = _cloud()
+    if cloud is not None and cloud.async_active_subscription(hass):
         if entry.data.get(CONF_CLOUDHOOK) and entry.data.get(CONF_WEBHOOK_ID) == webhook_id:
             url = entry.data.get("cloudhook_url")
             if url:
@@ -163,7 +174,8 @@ async def async_deregister_remote(hass: HomeAssistant, entry: PhareConfigEntry, 
         await client.update_settings({"notify_webhook": False, "webhook_url": None})
     except (PhareApiError, PhareConnectionError) as err:
         _LOGGER.debug("Could not deregister the Phare webhook: %s", err)
-    if entry.data.get(CONF_CLOUDHOOK) and cloud.async_active_subscription(hass):
+    cloud = _cloud()
+    if entry.data.get(CONF_CLOUDHOOK) and cloud is not None and cloud.async_active_subscription(hass):
         try:
             await cloud.async_delete_cloudhook(hass, webhook_id)
         except cloud.CloudNotAvailable:
