@@ -1,0 +1,17 @@
+# Secret scanning for the whole git history (gitleaks). Extends the default rules
+# with Phare's own token format; the test suite's fixed dummy token is allowed.
+title = "phare-home-assistant"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "phare-personal-access-token"
+description = "Phare personal access token"
+regex = '''phare_pat_[A-Za-z0-9_-]{30,}'''
+keywords = ["phare_pat_"]
+
+[allowlist]
+regexes = ['''phare_pat_testtoken[A-Za-z0-9]*''']
+# The gate's own test table carries made-up samples of every secret shape.
+paths = ['''tests/test_public_hygiene\.py''']

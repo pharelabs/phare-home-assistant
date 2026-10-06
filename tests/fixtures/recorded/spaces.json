@@ -9,9 +9,9 @@
    "address_tz": "Europe/London",
    "armed": false,
    "remote_ic": false,
-   "owner": "auth0|6957b01d2529aaa8d853e210",
+   "owner": "auth0|000000000000000000000001",
    "space_type": "residential",
-   "added_by": "auth0|6957b01d2529aaa8d853e210"
+   "added_by": "auth0|000000000000000000000001"
   },
   {
    "space_id": "sp_home2",
@@ -23,9 +23,9 @@
    "address_tz": "America/Caracas",
    "armed": false,
    "remote_ic": false,
-   "owner": "auth0|6957b01d2529aaa8d853e210",
+   "owner": "auth0|000000000000000000000001",
    "space_type": "residential",
-   "added_by": "auth0|6957b01d2529aaa8d853e210"
+   "added_by": "auth0|000000000000000000000001"
   },
   {
    "space_id": "sp_home3",
@@ -36,9 +36,9 @@
    "address_tz": "America/Bogota",
    "armed": false,
    "remote_ic": false,
-   "owner": "auth0|6957b01d2529aaa8d853e210",
+   "owner": "auth0|000000000000000000000001",
    "space_type": "residential",
-   "added_by": "auth0|6957b01d2529aaa8d853e210"
+   "added_by": "auth0|000000000000000000000001"
   },
   {
    "space_id": "sp_home4",
@@ -50,9 +50,9 @@
    "address_tz": "America/Guayaquil",
    "armed": false,
    "remote_ic": false,
-   "owner": "auth0|6957b01d2529aaa8d853e210",
+   "owner": "auth0|000000000000000000000001",
    "space_type": "residential",
-   "added_by": "auth0|6957b01d2529aaa8d853e210"
+   "added_by": "auth0|000000000000000000000001"
   }
  ],
  "meta": {
