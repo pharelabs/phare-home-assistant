@@ -9,6 +9,15 @@ MANUFACTURER = "Phare Labs"
 
 CONF_TOKEN = "token"
 CONF_BASE_URL = "base_url"
+# Push: the webhook Home Assistant registered with the API and the secret the API signs with.
+CONF_WEBHOOK_ID = "webhook_id"
+CONF_WEBHOOK_SECRET = "webhook_secret"
+CONF_CLOUDHOOK = "cloudhook"
+# A delivery whose timestamp is further from now than this is dropped as a replay.
+WEBHOOK_MAX_SKEW = timedelta(seconds=300)
+# Deliveries are at-least-once; this many recent delivery ids are remembered to drop repeats.
+WEBHOOK_DEDUPE_SIZE = 256
+EVENT_ALERT = "phare_alert"
 DEFAULT_BASE_URL = "https://api.pharelabs.com/protect"
 
 # Devices publish every 60 s on Wi-Fi and every 300 s on LTE-M, so polling faster buys nothing.

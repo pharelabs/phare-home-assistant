@@ -162,6 +162,15 @@ class PhareApiClient:
 
     # ── writes (need the `control` scope) ──────────────────────────────────
 
+    async def update_settings(self, patch: dict[str, Any]) -> dict[str, Any]:
+        """Partial update of the account's settings. Registering a new webhook URL returns
+        `webhook_secret` in this response only."""
+        return await self._data("POST", "/v1/user/settings", json=patch) or {}
+
+    async def rotate_webhook_secret(self) -> str | None:
+        """A fresh signing secret; the old one stops verifying at once."""
+        return ((await self._data("POST", "/v1/user/webhook/rotate")) or {}).get("webhook_secret")
+
     async def arm(self, device_id: str, armed: bool) -> dict[str, Any]:
         return await self._data("POST", f"/v1/devices/{device_id}/arm", json={"armed": armed}) or {}
 
