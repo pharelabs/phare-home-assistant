@@ -32,6 +32,7 @@ RULES: list[tuple[str, re.Pattern[str], tuple[str, ...]]] = [
     ("AWS access key", re.compile(r"\bAKIA[0-9A-Z]{16}\b"), ()),
     ("private key block", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"), ()),
     ("AWS account id or ARN", re.compile(r"\b\d{12}\b(?=.*amazonaws)|arn:aws:"), ()),
+    ("API Gateway endpoint", re.compile(r"(?i)\b[a-z0-9]{10}\.execute-api\.[a-z0-9-]+\.amazonaws\.com"), ()),
     ("non-production Phare host", re.compile(r"(?i)\b(dev|sandbox|staging|test)\.[a-z]+\.pharelabs\.com"), ()),
     ("company e-mail address", re.compile(r"(?i)(?<![\w.])[A-Za-z0-9._%+-]+@([a-z0-9-]+\.)*pharelabs\.com"), ()),
     ("phone number", re.compile(r"(?<![\w/:])\(?\+\d{1,3}\)?[\d\s().-]{7,}\d(?![\w:])"), ()),
@@ -59,14 +60,17 @@ def tracked_files() -> list[str]:
 
 def _strip_public_addresses(text: str) -> str:
     for address in PUBLIC_ADDRESSES:
-        text = re.sub(re.escape(address), "", text, flags=re.I)
+        # Whole addresses only: "x.security@pharelabs.com" must still be flagged.
+        text = re.sub(r"(?<![\w.%+-])" + re.escape(address), "", text, flags=re.I)
     return text
 
 
-def line_problems(text: str) -> list[str]:
+def line_problems(text: str, path: str = "") -> list[str]:
     """Rule names that match `text`, as a file line or a commit message would be checked."""
     hits = []
-    for name, pattern, _ in RULES:
+    for name, pattern, allowed in RULES:
+        if path and any(path.startswith(prefix) for prefix in allowed):
+            continue
         probe = _strip_public_addresses(text) if name == "company e-mail address" else text
         if pattern.search(probe):
             hits.append(name)
@@ -86,13 +90,7 @@ def scan_files() -> list[str]:
         except (UnicodeDecodeError, FileNotFoundError):
             continue
         for lineno, line in enumerate(text.splitlines(), 1):
-            for name, pattern, allowed in RULES:
-                if any(rel.startswith(prefix) for prefix in allowed):
-                    continue
-                if name == "company e-mail address" and pattern.search(_strip_public_addresses(line)):
-                    problems.append(f"{rel}:{lineno}: {name}")
-                elif name != "company e-mail address" and pattern.search(line):
-                    problems.append(f"{rel}:{lineno}: {name}")
+            problems += [f"{rel}:{lineno}: {name}" for name in line_problems(line, rel)]
     return problems
 
 
