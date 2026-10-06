@@ -13,3 +13,5 @@ keywords = ["phare_pat_"]
 
 [allowlist]
 regexes = ['''phare_pat_testtoken[A-Za-z0-9]*''']
+# The gate's own test table carries made-up samples of every secret shape.
+paths = ['''tests/test_public_hygiene\.py''']

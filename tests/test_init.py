@@ -31,7 +31,7 @@ async def setup_entry(hass: HomeAssistant, aioclient_mock, freezer, **overrides)
     mock_api(aioclient_mock, **overrides)
     entry = MockConfigEntry(
         domain=DOMAIN,
-        unique_id="auth0|6957b01d2529aaa8d853e210",
+        unique_id="auth0|000000000000000000000001",
         title="Test Account",
         data={CONF_TOKEN: TOKEN, CONF_BASE_URL: DEFAULT_BASE_URL},
     )

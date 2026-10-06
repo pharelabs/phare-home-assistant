@@ -23,16 +23,24 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 # (name, regex, paths where the pattern is allowed)
+# Role addresses a public README may legitimately carry.
+PUBLIC_ADDRESSES = ("security@pharelabs.com", "support@pharelabs.com", "hello@pharelabs.com")
+AI_TOOLS = r"(claude|anthropic|copilot|chatgpt|openai|codex|gemini|cursor|devin|aider|windsurf)"
+
 RULES: list[tuple[str, re.Pattern[str], tuple[str, ...]]] = [
     ("Phare access token", re.compile(r"phare_pat_(?!testtoken)[A-Za-z0-9_-]{30,}"), ()),
     ("AWS access key", re.compile(r"\bAKIA[0-9A-Z]{16}\b"), ()),
     ("private key block", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"), ()),
     ("AWS account id or ARN", re.compile(r"\b\d{12}\b(?=.*amazonaws)|arn:aws:"), ()),
-    ("non-production API host", re.compile(r"\b(dev|sandbox|staging)\.api\.pharelabs\.com"), ()),
-    ("company e-mail address", re.compile(r"(?<![\w.])(?!security@)[A-Za-z0-9._%+-]+@pharelabs\.com"), ()),
-    ("phone number", re.compile(r"(?<![\w/])\+\d{2}[\d\s]{8,}\d(?!\w)"), ()),
-    ("Auth0 user id", re.compile(r"auth0\|[0-9a-f]{24}"), ("tests/fixtures/", "tests/")),
-    ("AI attribution", re.compile(r"(?i)co-authored-by:.*(claude|anthropic|copilot|chatgpt)|generated with \[?claude|noreply@anthropic\.com"), ()),
+    ("non-production Phare host", re.compile(r"(?i)\b(dev|sandbox|staging|test)\.[a-z]+\.pharelabs\.com"), ()),
+    ("company e-mail address", re.compile(r"(?i)(?<![\w.])[A-Za-z0-9._%+-]+@([a-z0-9-]+\.)*pharelabs\.com"), ()),
+    ("phone number", re.compile(r"(?<![\w/:])\(?\+\d{1,3}\)?[\d\s().-]{7,}\d(?![\w:])"), ()),
+    ("Auth0 user id", re.compile(r"(?i)auth0\|[0-9a-f]{24}"), ("tests/",)),
+    ("AI attribution", re.compile(
+        r"(?im)^\s*(co-authored-by|assisted-by|generated-by|signed-off-by|reviewed-by):.*\b" + AI_TOOLS + r"\b"
+        + r"|\b(generated|made|written|created|built)\s+(with|by)\s+(\[|the\s+)?(github\s+)?" + AI_TOOLS
+        + r"|noreply@anthropic\.com|cursoragent@cursor\.com|\bcodex@openai\.com"
+    ), ()),
 ]
 
 SKIP_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".ico", ".woff", ".woff2", ".zip")
@@ -40,12 +48,29 @@ FORBIDDEN_FILES = re.compile(r"(^|/)(\.env(\..*)?|.*\.pem|.*\.key|.*\.p12|id_rsa
 
 
 SELF = Path(__file__).resolve().relative_to(ROOT).as_posix()
+# The patterns above match their own source, and the test table that pins them.
+EXEMPT_FILES = {SELF, "tests/test_public_hygiene.py"}
 
 
 def tracked_files() -> list[str]:
     out = subprocess.run(["git", "ls-files"], cwd=ROOT, check=True, capture_output=True, text=True).stdout
-    # The patterns above would match their own source.
-    return [line for line in out.splitlines() if line and line != SELF]
+    return [line for line in out.splitlines() if line and line not in EXEMPT_FILES]
+
+
+def _strip_public_addresses(text: str) -> str:
+    for address in PUBLIC_ADDRESSES:
+        text = re.sub(re.escape(address), "", text, flags=re.I)
+    return text
+
+
+def line_problems(text: str) -> list[str]:
+    """Rule names that match `text`, as a file line or a commit message would be checked."""
+    hits = []
+    for name, pattern, _ in RULES:
+        probe = _strip_public_addresses(text) if name == "company e-mail address" else text
+        if pattern.search(probe):
+            hits.append(name)
+    return hits
 
 
 def scan_files() -> list[str]:
@@ -62,7 +87,11 @@ def scan_files() -> list[str]:
             continue
         for lineno, line in enumerate(text.splitlines(), 1):
             for name, pattern, allowed in RULES:
-                if pattern.search(line) and not any(rel.startswith(prefix) for prefix in allowed):
+                if any(rel.startswith(prefix) for prefix in allowed):
+                    continue
+                if name == "company e-mail address" and pattern.search(_strip_public_addresses(line)):
+                    problems.append(f"{rel}:{lineno}: {name}")
+                elif name != "company e-mail address" and pattern.search(line):
                     problems.append(f"{rel}:{lineno}: {name}")
     return problems
 
@@ -77,9 +106,8 @@ def scan_commits(revision_range: str) -> list[str]:
         if not chunk.strip():
             continue
         sha, subject, body = (chunk.strip("\n").split("\x00") + ["", ""])[:3]
-        for name, pattern, _ in RULES:
-            if pattern.search(subject) or pattern.search(body):
-                problems.append(f"commit {sha[:8]} ({subject[:50]}): {name} in the message")
+        for name in line_problems(subject + "\n" + body):
+            problems.append(f"commit {sha[:8]} ({subject[:50]}): {name} in the message")
     return problems
 
 
