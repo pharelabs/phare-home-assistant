@@ -7,6 +7,8 @@ import hmac
 import json
 import time
 
+import aiohttp
+
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -257,3 +259,60 @@ async def test_losing_the_external_url_tells_the_api(hass, aioclient_mock, freez
     assert await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
     assert registration_calls(aioclient_mock)[-1][2] == {"notify_webhook": False, "webhook_url": None}
+
+
+async def test_an_older_poll_record_does_not_undo_a_pushed_alert(hass, aioclient_mock, freezer, hass_client_no_auth) -> None:
+    # The fixture's alert window holds an older `resolved` fire record for the kitchen: a poll
+    # fetched before the push carries it and must not clear the newer pushed alert.
+    entry = await setup_with_webhook(hass, aioclient_mock, freezer)
+    sensor = entity_id(hass, "binary_sensor", f"{KITCHEN}_alert_fire")
+    client = await hass_client_no_auth()
+    assert (await post(hass, client, entry, alert_payload(KITCHEN, "fire"))).status == 200
+    assert hass.states.get(sensor).state == STATE_ON
+    await entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+    assert hass.states.get(sensor).state == STATE_ON
+
+
+async def test_an_out_of_order_retry_does_not_reopen_a_resolved_alert(hass, aioclient_mock, freezer, hass_client_no_auth) -> None:
+    entry = await setup_with_webhook(hass, aioclient_mock, freezer)
+    sensor = entity_id(hass, "binary_sensor", f"{KITCHEN}_alert_fire")
+    client = await hass_client_no_auth()
+    resolved = alert_payload(KITCHEN, "fire", delivery="dlv_b", stage="resolved", ts="2026-10-02T09:59:50Z")
+    assert (await post(hass, client, entry, resolved)).status == 200
+    assert (await post(hass, client, entry, alert_payload(KITCHEN, "fire", delivery="dlv_b"))).status == 200
+    assert hass.states.get(sensor).state == STATE_OFF
+
+
+async def test_api_unreachable_on_reload_keeps_the_stored_webhook(hass, aioclient_mock, freezer, hass_client_no_auth) -> None:
+    entry = await setup_with_webhook(hass, aioclient_mock, freezer)
+    aioclient_mock.clear_requests()
+    mock_api(aioclient_mock)
+    aioclient_mock.post(f"{BASE}/v1/user/settings", exc=aiohttp.ClientError("down"))
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.data[CONF_WEBHOOK_SECRET] == SECRET
+    client = await hass_client_no_auth()
+    assert (await post(hass, client, entry, alert_payload(KITCHEN, "fire"))).status == 200
+    assert hass.states.get(entity_id(hass, "binary_sensor", f"{KITCHEN}_alert_fire")).state == STATE_ON
+
+
+async def test_a_non_object_alert_is_rejected(hass, aioclient_mock, freezer, hass_client_no_auth) -> None:
+    entry = await setup_with_webhook(hass, aioclient_mock, freezer)
+    client = await hass_client_no_auth()
+    payload = {"event": "alert", "delivery_id": "dlv_l", "data": ["not", "an", "object"]}
+    assert (await post(hass, client, entry, payload)).status == 400
+
+
+async def test_losing_the_external_url_forgets_the_webhook(hass, aioclient_mock, freezer) -> None:
+    entry = await setup_with_webhook(hass, aioclient_mock, freezer)
+    aioclient_mock.clear_requests()
+    mock_api(aioclient_mock)
+    aioclient_mock.post(f"{BASE}/v1/user/settings", json={"data": {}})
+    await async_process_ha_core_config(hass, {"external_url": "http://ha.local:8123"})
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert CONF_WEBHOOK_ID not in entry.data and CONF_WEBHOOK_SECRET not in entry.data
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert len(registration_calls(aioclient_mock)) == 1

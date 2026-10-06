@@ -21,7 +21,7 @@ import hmac
 import json
 import logging
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from aiohttp import web
 
@@ -48,6 +48,8 @@ _LOGGER = logging.getLogger(__name__)
 HEADER_DELIVERY = "X-Phare-Delivery"
 HEADER_TIMESTAMP = "X-Phare-Timestamp"
 HEADER_SIGNATURE = "X-Phare-Signature"
+
+_WEBHOOK_KEYS = {CONF_WEBHOOK_ID, CONF_WEBHOOK_SECRET, CONF_CLOUDHOOK, "cloudhook_url"}
 
 
 def signature(secret: str, timestamp: str, body: bytes) -> str:
@@ -115,6 +117,9 @@ async def async_register(hass: HomeAssistant, entry: PhareConfigEntry) -> bool:
         if entry.data.get(CONF_WEBHOOK_ID):
             # Registered on an earlier setup: tell the API, or it keeps posting into the void.
             await async_deregister_remote(hass, entry, coordinator.client)
+            hass.config_entries.async_update_entry(
+                entry, data={k: v for k, v in entry.data.items() if k not in _WEBHOOK_KEYS}
+            )
         return False
     url, is_cloudhook = located
 
@@ -131,6 +136,10 @@ async def async_register(hass: HomeAssistant, entry: PhareConfigEntry) -> bool:
         _LOGGER.info("Phare alerts arrive by polling: the API refused the webhook URL (%s)", err.message)
         return False
     except PhareConnectionError as err:
+        if _register_stored(hass, entry):
+            # The API still holds the URL and secret from the last setup; keep receiving on them.
+            _LOGGER.warning("Phare webhook registration could not be refreshed, keeping the last one: %s", err)
+            return True
         _LOGGER.warning("Phare webhook registration failed, staying on polling: %s", err)
         return False
 
@@ -145,7 +154,14 @@ async def async_register(hass: HomeAssistant, entry: PhareConfigEntry) -> bool:
         # recovery that email suggests is exactly this reload.
         try:
             secret = await coordinator.client.rotate_webhook_secret()
-        except (PhareApiError, PhareConnectionError) as err:
+        except PhareConnectionError as err:
+            # The rotation may never have reached the API; the stored secret is then still live.
+            if _register_stored(hass, entry):
+                _LOGGER.warning("Phare webhook secret could not be rotated, keeping the last one: %s", err)
+                return True
+            _LOGGER.warning("Phare webhook registered but no secret could be obtained: %s", err)
+            return False
+        except PhareApiError as err:
             _LOGGER.warning("Phare webhook registered but no secret could be obtained: %s", err)
             return False
         if not secret:
@@ -153,8 +169,21 @@ async def async_register(hass: HomeAssistant, entry: PhareConfigEntry) -> bool:
     data[CONF_WEBHOOK_SECRET] = secret
     hass.config_entries.async_update_entry(entry, data=data)
 
-    webhook.async_register(hass, DOMAIN, entry.title, webhook_id, _make_handler(entry), allowed_methods=["POST"])
+    _register_handler(hass, entry, webhook_id)
     _LOGGER.debug("Phare alert webhook registered at %s", url)
+    return True
+
+
+def _register_handler(hass: HomeAssistant, entry: PhareConfigEntry, webhook_id: str) -> None:
+    webhook.async_register(hass, DOMAIN, entry.title, webhook_id, _make_handler(entry), allowed_methods=["POST"])
+
+
+def _register_stored(hass: HomeAssistant, entry: PhareConfigEntry) -> bool:
+    """Receive on the webhook and secret kept from an earlier setup, when there are both."""
+    webhook_id = entry.data.get(CONF_WEBHOOK_ID)
+    if not webhook_id or not entry.data.get(CONF_WEBHOOK_SECRET):
+        return False
+    _register_handler(hass, entry, webhook_id)
     return True
 
 
@@ -205,7 +234,9 @@ def _make_handler(entry: PhareConfigEntry):
         if not isinstance(payload, dict) or payload.get("event") != "alert":
             return web.Response(status=400, text="unexpected event")
         delivery = str(payload.get("delivery_id") or request.headers.get(HEADER_DELIVERY) or "")
-        alert: dict[str, Any] = payload.get("data") or {}
+        alert = payload.get("data") or {}
+        if not isinstance(alert, dict):
+            return web.Response(status=400, text="alert is not an object")
         # One alert carries several records (new, then resolved); a repeat is the same record.
         record = (delivery, str(alert.get("stage")), str(alert.get("ts")))
         if delivery and record in seen:
