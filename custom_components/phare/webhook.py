@@ -29,7 +29,7 @@ from homeassistant.components import webhook
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.network import NoURLAvailableError
 
-from .api import PhareApiError, PhareAuthError, PhareConnectionError
+from .api import PhareApiError, PhareAuthError, PhareConnectionError, PhareMembershipRequiredError
 from .const import (
     CONF_CLOUDHOOK,
     CONF_WEBHOOK_ID,
@@ -125,6 +125,9 @@ async def async_register(hass: HomeAssistant, entry: PhareConfigEntry) -> bool:
 
     try:
         result = await coordinator.client.update_settings({"notify_webhook": True, "webhook_url": url})
+    except PhareMembershipRequiredError as err:
+        _LOGGER.info("Phare alerts arrive by polling: the API refused the webhook registration (%s)", err.message)
+        return False
     except PhareAuthError as err:
         _LOGGER.info(
             "Phare alerts arrive by polling: the API refused the webhook registration (%s). "

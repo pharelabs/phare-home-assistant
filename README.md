@@ -1,5 +1,9 @@
 # Phare Protect for Home Assistant
 
+> **Beta.** This is an early release. Please share any feedback, issues or bugs: open an
+> [issue](https://github.com/pharelabs/phare-home-assistant/issues), or email
+> [support@pharelabs.com](mailto:support@pharelabs.com).
+
 Brings your [Phare](https://pharelabs.com) fire, CO and air-quality sensors into Home Assistant:
 readings, online status, active alarms, the break-in alarm, and the test / identify / silence
 commands — so a Phare alert can drive your lights, sirens and locks.
@@ -17,13 +21,16 @@ every 300 s on LTE-M, so polling faster would not see more.
 
 ## Set up
 
-1. In the Phare Protect app: Settings → **API tokens** → Create token. Pick **Read and control**
-   if you want Home Assistant to arm, test or silence devices; **Read only** for sensors alone.
-   The token is shown once — copy it.
+1. In the Phare Protect app (version 1.2.0 or later): Settings → **API tokens** → Create token.
+   Pick **Read and control** if you want Home Assistant to arm, test or silence devices;
+   **Read only** for sensors alone. The token is shown once — copy it.
 2. Paste it into the integration's setup form.
 
-If the token is revoked or expires (tokens live at most a year), Home Assistant shows a
-*re-authenticate* prompt; create a new token and paste it there.
+A token keeps working for as long as Home Assistant uses it: one left unused for 90 days stops
+working, and it has no other expiry unless you chose one when creating it (a token issued
+before October 2026 keeps the fixed one-year expiry it was issued with). If the token is
+revoked or expires, Home Assistant shows a *re-authenticate* prompt; create a new token and
+paste it there.
 
 ## What you get
 
@@ -63,6 +70,14 @@ posting.
   those, a reading older than 15 minutes marks the device unavailable.
 - Diagnostics (Settings → Devices & services → Phare → ⋮ → Download diagnostics) redact the token, the
   address and coordinates, and the account's name, email and phone.
+
+## Support
+
+This integration is in beta. Report bugs and ask for features in the
+[issue tracker](https://github.com/pharelabs/phare-home-assistant/issues), or email
+[support@pharelabs.com](mailto:support@pharelabs.com). For anything about your account, your
+devices or a real alarm, contact Phare support rather than opening a public issue, and never
+paste your token into an issue. Security reports: see [SECURITY.md](SECURITY.md).
 
 ## Development
 
