@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+import pytest
+
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
 from homeassistant.components.alarm_control_panel import (
@@ -14,6 +16,7 @@ from homeassistant.components.alarm_control_panel import (
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import ATTR_ENTITY_ID, STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
@@ -159,6 +162,21 @@ async def test_a_plan_without_api_access_mid_poll_starts_reauth(hass, aioclient_
 
     flows = [f for f in hass.config_entries.flow.async_progress() if f["context"].get("source") == "reauth"]
     assert len(flows) == 1 and flows[0]["context"]["entry_id"] == entry.entry_id
+
+
+async def test_a_plan_refusal_on_a_button_names_the_plan_not_the_scope(hass, aioclient_mock, freezer) -> None:
+    await setup_entry(hass, aioclient_mock, freezer)
+    aioclient_mock.post(
+        f"{BASE}/v1/devices/{KITCHEN}/test",
+        status=403,
+        json={"error": "API access is not included in your plan", "code": "membership_required"},
+    )
+    with pytest.raises(HomeAssistantError) as raised:
+        await hass.services.async_call(
+            "button", "press", {ATTR_ENTITY_ID: entity_id(hass, "button", f"{KITCHEN}_test")}, blocking=True
+        )
+    assert "not included in your plan" in str(raised.value)
+    assert "control scope" not in str(raised.value)
 
 
 async def test_unload_cleans_up(hass, aioclient_mock, freezer) -> None:

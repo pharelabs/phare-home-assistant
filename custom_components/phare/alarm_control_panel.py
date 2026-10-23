@@ -14,7 +14,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .api import PhareApiError, PhareAuthError, PhareConnectionError
+from .api import PhareApiError, PhareAuthError, PhareConnectionError, PhareMembershipRequiredError
 from .const import DOMAIN, HW_WITHOUT_RADAR, MANUFACTURER
 from .coordinator import PhareConfigEntry, PhareCoordinator
 
@@ -105,6 +105,8 @@ class PhareBreakInAlarm(CoordinatorEntity[PhareCoordinator], AlarmControlPanelEn
         for device_id in device_ids:
             try:
                 await self.coordinator.client.arm(device_id, armed)
+            except PhareMembershipRequiredError as err:
+                raise HomeAssistantError(f"Phare refused the request: {err.message}") from err
             except PhareAuthError as err:
                 raise HomeAssistantError(
                     "Phare refused the request: the token may lack the control scope."
