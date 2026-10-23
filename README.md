@@ -27,7 +27,8 @@ every 300 s on LTE-M, so polling faster would not see more.
 2. Paste it into the integration's setup form.
 
 A token keeps working for as long as Home Assistant uses it: one left unused for 90 days stops
-working, and it has no other expiry unless you chose one when creating it. If the token is
+working, and it has no other expiry unless you chose one when creating it (a token issued
+before October 2026 keeps the fixed one-year expiry it was issued with). If the token is
 revoked or expires, Home Assistant shows a *re-authenticate* prompt; create a new token and
 paste it there.
 
