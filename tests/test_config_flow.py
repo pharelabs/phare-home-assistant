@@ -37,6 +37,30 @@ async def test_a_refused_token_is_invalid_auth(hass: HomeAssistant, aioclient_mo
     assert result["errors"] == {"base": "invalid_auth"}
 
 
+MEMBERSHIP_REQUIRED = {
+    "error": "API access is not included in your plan",
+    "code": "membership_required",
+    "membership": "free",
+    "required": "pro",
+}
+
+
+async def test_a_plan_without_api_access_says_so(hass: HomeAssistant, aioclient_mock) -> None:
+    # Not "invalid token": the token is fine, the plan is not, and the user needs to know which.
+    aioclient_mock.get(f"{BASE}/v1/user/settings", status=403, json=MEMBERSHIP_REQUIRED)
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_TOKEN: TOKEN})
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "membership_required"}
+
+
+async def test_a_handlers_own_403_is_not_a_plan_problem(hass: HomeAssistant, aioclient_mock) -> None:
+    aioclient_mock.get(f"{BASE}/v1/user/settings", status=403, json={"error": "Access denied"})
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_TOKEN: TOKEN})
+    assert result["errors"] == {"base": "unknown"}
+
+
 async def test_an_unreachable_api_is_cannot_connect(hass: HomeAssistant, aioclient_mock) -> None:
     aioclient_mock.get(f"{BASE}/v1/user/settings", exc=aiohttp.ClientConnectionError("down"))
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})

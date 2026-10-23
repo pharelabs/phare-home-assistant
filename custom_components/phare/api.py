@@ -8,6 +8,10 @@ integration become typed errors:
   A handler's own 403 (`{"error": "Access denied to device"}`) is PhareForbiddenError: the
   credential is fine, the resource is not the caller's. Nothing handles it specially today; the
   distinct type keeps the two apart in logs and lets a caller tell them apart later.
+* 403 with `code: "membership_required"` -> PhareMembershipRequiredError, an auth error: the
+  token is fine but the account's plan does not include API access. The API does not send it
+  today; if Phare ever limits API access by plan, this is how it says so, and Home Assistant
+  must ask the user to act rather than let the entities go quietly stale.
 * 429 -> PhareRateLimitedError, carrying Retry-After when the API sends one.
 * anything else non-2xx -> PhareApiError with the status and the API's message.
 """
@@ -35,6 +39,10 @@ class PhareApiError(Exception):
 
 class PhareAuthError(PhareApiError):
     """The credential was refused: the user must re-authenticate."""
+
+
+class PhareMembershipRequiredError(PhareAuthError):
+    """The account's plan does not include API access."""
 
 
 class PhareForbiddenError(PhareApiError):
@@ -106,6 +114,8 @@ class PhareApiClient:
                     raise PhareAuthError(resp.status, _message(body, "Unauthorized"))
                 if resp.status == 403:
                     message = _message(body, "Forbidden")
+                    if isinstance(body, dict) and body.get("code") == "membership_required":
+                        raise PhareMembershipRequiredError(resp.status, message)
                     # API Gateway's refusal carries `message`; a handler's carries `error`.
                     if isinstance(body, dict) and "error" in body:
                         raise PhareForbiddenError(resp.status, message)

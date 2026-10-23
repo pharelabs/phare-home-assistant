@@ -14,7 +14,7 @@
       },
       "reauth_confirm": {
         "title": "Your Phare token no longer works",
-        "description": "It was revoked, expired, or your plan changed. Create a new token in the Phare Protect app and paste it here.",
+        "description": "It was revoked, expired, or your Phare plan no longer includes API access. Create a new token in the Phare Protect app, or check your plan, then paste a working token here.",
         "data": {
           "token": "Personal access token"
         }
@@ -24,6 +24,7 @@
       "invalid_auth": "The token was refused. Check it was copied in full and has not been revoked.",
       "cannot_connect": "Could not reach the Phare API.",
       "https_required": "The API base URL must start with https://.",
+      "membership_required": "Your Phare plan does not include API access. Check your plan in the Phare Protect app, then try again.",
       "unknown": "Unexpected error. Check the logs."
     },
     "abort": {

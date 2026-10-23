@@ -11,7 +11,13 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import PhareApiClient, PhareApiError, PhareAuthError, PhareConnectionError
+from .api import (
+    PhareApiClient,
+    PhareApiError,
+    PhareAuthError,
+    PhareConnectionError,
+    PhareMembershipRequiredError,
+)
 from .const import CONF_BASE_URL, CONF_TOKEN, DEFAULT_BASE_URL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,6 +50,8 @@ class PhareConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 try:
                     account = await validate_token(self.hass, token, base_url)
+                except PhareMembershipRequiredError:
+                    errors["base"] = "membership_required"
                 except PhareAuthError:
                     errors["base"] = "invalid_auth"
                 except PhareConnectionError:
@@ -80,6 +88,8 @@ class PhareConfigFlow(ConfigFlow, domain=DOMAIN):
             base_url = entry.data.get(CONF_BASE_URL, DEFAULT_BASE_URL)
             try:
                 account = await validate_token(self.hass, token, base_url)
+            except PhareMembershipRequiredError:
+                errors["base"] = "membership_required"
             except PhareAuthError:
                 errors["base"] = "invalid_auth"
             except PhareConnectionError:

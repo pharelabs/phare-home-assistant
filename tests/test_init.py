@@ -140,6 +140,27 @@ async def test_a_refused_token_mid_poll_starts_reauth(hass, aioclient_mock, free
     assert len(flows) == 1 and flows[0]["context"]["entry_id"] == entry.entry_id
 
 
+async def test_a_plan_without_api_access_mid_poll_starts_reauth(hass, aioclient_mock, freezer) -> None:
+    # A handler's 403 normally means "not your resource" and only fails the poll. With
+    # `membership_required` it means the account lost API access: entities wired into smoke
+    # and CO automations must not go quietly stale, so Home Assistant asks the user to act.
+    entry = await setup_entry(hass, aioclient_mock, freezer)
+
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(f"{BASE}/v1/devices", json=payload("devices.json"))
+    aioclient_mock.get(
+        f"{BASE}/v1/spaces",
+        status=403,
+        json={"error": "API access is not included in your plan", "code": "membership_required"},
+    )
+    freezer.tick(timedelta(seconds=61))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    flows = [f for f in hass.config_entries.flow.async_progress() if f["context"].get("source") == "reauth"]
+    assert len(flows) == 1 and flows[0]["context"]["entry_id"] == entry.entry_id
+
+
 async def test_unload_cleans_up(hass, aioclient_mock, freezer) -> None:
     entry = await setup_entry(hass, aioclient_mock, freezer)
     assert await hass.config_entries.async_unload(entry.entry_id)
