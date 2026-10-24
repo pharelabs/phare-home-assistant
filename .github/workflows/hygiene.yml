@@ -1,0 +1,48 @@
+# This repository is public. Two checks that fail the build on anything that must
+# not be here: secrets anywhere in the git history, and internal or personal data
+# and AI attribution in files or commit messages.
+name: Public hygiene
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: No secrets in history
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan every commit with gitleaks
+        env:
+          GITLEAKS_VERSION: 8.21.2
+          GITLEAKS_SHA256: 5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba
+        run: |
+          curl -fsSL -o gitleaks.tgz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tgz" | sha256sum -c
+          tar -xzf gitleaks.tgz gitleaks
+          ./gitleaks git --config .gitleaks.toml --redact --no-banner --verbose .
+
+  content:
+    name: No internal data or AI attribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Check tracked files and the pull request's commit messages
+        run: |
+          if [ -n "${{ github.base_ref }}" ]; then
+            python .github/scripts/check_public_hygiene.py "origin/${{ github.base_ref }}..HEAD"
+          else
+            python .github/scripts/check_public_hygiene.py
+          fi

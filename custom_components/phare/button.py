@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .api import PhareApiError, PhareAuthError, PhareConnectionError
+from .api import PhareApiError, PhareAuthError, PhareConnectionError, PhareMembershipRequiredError
 from .coordinator import PhareConfigEntry, PhareCoordinator
 from .entity import PhareDeviceEntity
 
@@ -65,6 +65,8 @@ class PhareButton(PhareDeviceEntity, ButtonEntity):
     async def async_press(self) -> None:
         try:
             await self.coordinator.client.command(self._device_id, self.entity_description.key)
+        except PhareMembershipRequiredError as err:
+            raise HomeAssistantError(f"Phare refused the request: {err.message}") from err
         except PhareAuthError as err:
             raise HomeAssistantError(
                 "Phare refused the request: the token may lack the control scope."

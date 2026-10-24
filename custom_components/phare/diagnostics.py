@@ -8,10 +8,13 @@ from typing import Any
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_TOKEN
+from .const import CONF_TOKEN, CONF_WEBHOOK_ID, CONF_WEBHOOK_SECRET
 from .coordinator import PhareConfigEntry
 
-TO_REDACT = {CONF_TOKEN, "address", "address_lat", "address_lng", "email", "name", "phone"}
+TO_REDACT = {
+    CONF_TOKEN, CONF_WEBHOOK_SECRET, CONF_WEBHOOK_ID, "cloudhook_url",
+    "address", "address_lat", "address_lng", "email", "name", "phone",
+}
 
 
 async def async_get_config_entry_diagnostics(

@@ -14,6 +14,10 @@ jobs:
 
   hacs:
     runs-on: ubuntu-latest
+    # HACS reads hacs.json and the manifest through the GitHub API, which it cannot do
+    # while the repository is internal. Skipped until the repository is public; it then
+    # runs on its own, nothing to change here.
+    if: github.event.repository.visibility == 'public'
     steps:
       - uses: actions/checkout@v4
       - uses: hacs/action@main
@@ -21,8 +25,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           category: integration
-          # Until the Phare logo is in home-assistant/brands.
-          ignore: brands
 
   tests:
     runs-on: ubuntu-latest

@@ -24,7 +24,7 @@ async def test_a_valid_token_creates_the_entry(hass: HomeAssistant, aioclient_mo
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "Test Account"
     assert result["data"] == {CONF_TOKEN: TOKEN, CONF_BASE_URL: DEFAULT_BASE_URL}
-    assert result["result"].unique_id == "auth0|6957b01d2529aaa8d853e210"
+    assert result["result"].unique_id == "auth0|000000000000000000000001"
     assert aioclient_mock.mock_calls[0][3]["Authorization"] == f"Bearer {TOKEN}"
 
 
@@ -35,6 +35,30 @@ async def test_a_refused_token_is_invalid_auth(hass: HomeAssistant, aioclient_mo
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_TOKEN: TOKEN})
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "invalid_auth"}
+
+
+MEMBERSHIP_REQUIRED = {
+    "error": "API access is not included in your plan",
+    "code": "membership_required",
+    "membership": "free",
+    "required": "pro",
+}
+
+
+async def test_a_plan_without_api_access_says_so(hass: HomeAssistant, aioclient_mock) -> None:
+    # Not "invalid token": the token is fine, the plan is not, and the user needs to know which.
+    aioclient_mock.get(f"{BASE}/v1/user/settings", status=403, json=MEMBERSHIP_REQUIRED)
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_TOKEN: TOKEN})
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "membership_required"}
+
+
+async def test_a_handlers_own_403_is_not_a_plan_problem(hass: HomeAssistant, aioclient_mock) -> None:
+    aioclient_mock.get(f"{BASE}/v1/user/settings", status=403, json={"error": "Access denied"})
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_TOKEN: TOKEN})
+    assert result["errors"] == {"base": "unknown"}
 
 
 async def test_an_unreachable_api_is_cannot_connect(hass: HomeAssistant, aioclient_mock) -> None:
@@ -52,7 +76,7 @@ async def test_a_server_error_is_unknown(hass: HomeAssistant, aioclient_mock) ->
 
 
 async def test_the_same_account_cannot_be_added_twice(hass: HomeAssistant, aioclient_mock) -> None:
-    MockConfigEntry(domain=DOMAIN, unique_id="auth0|6957b01d2529aaa8d853e210", data={CONF_TOKEN: "old"}).add_to_hass(hass)
+    MockConfigEntry(domain=DOMAIN, unique_id="auth0|000000000000000000000001", data={CONF_TOKEN: "old"}).add_to_hass(hass)
     aioclient_mock.get(f"{BASE}/v1/user/settings", json=payload("user_settings.json"))
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_TOKEN: TOKEN})
@@ -78,7 +102,7 @@ async def test_the_base_url_is_advanced_only_and_must_be_https(hass: HomeAssista
 async def test_reauth_accepts_a_new_token_for_the_same_account(hass: HomeAssistant, aioclient_mock) -> None:
     entry = MockConfigEntry(
         domain=DOMAIN,
-        unique_id="auth0|6957b01d2529aaa8d853e210",
+        unique_id="auth0|000000000000000000000001",
         data={CONF_TOKEN: "phare_pat_old", CONF_BASE_URL: DEFAULT_BASE_URL},
     )
     entry.add_to_hass(hass)
