@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Run by hand from the Actions tab, e.g. to re-check main without a new commit.
+  workflow_dispatch:
 
 jobs:
   hassfest:
@@ -14,10 +16,6 @@ jobs:
 
   hacs:
     runs-on: ubuntu-latest
-    # HACS reads hacs.json and the manifest through the GitHub API, which it cannot do
-    # while the repository is internal. Skipped until the repository is public; it then
-    # runs on its own, nothing to change here.
-    if: github.event.repository.visibility == 'public'
     steps:
       - uses: actions/checkout@v4
       - uses: hacs/action@main
