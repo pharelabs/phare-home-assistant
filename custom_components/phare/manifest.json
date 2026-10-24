@@ -4,6 +4,11 @@
   "after_dependencies": [
     "cloud"
   ],
+  "categories": [
+    "security_safety.smoke_co_alarms",
+    "sensors.air_quality",
+    "security_safety.alarm_systems"
+  ],
   "codeowners": [
     "@arnaudonate"
   ],
