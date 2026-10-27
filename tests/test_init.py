@@ -65,6 +65,11 @@ async def test_sensors_exist_only_for_what_each_device_reports(hass, aioclient_m
     assert entity_id(hass, "sensor", f"{BEDROOM}_humidity") is None
     assert entity_id(hass, "sensor", f"{BEDROOM}_carbon_dioxide") is not None
 
+    # Carbon monoxide and dioxide in ppm, whichever constant this Home Assistant names it with.
+    for key in ("carbon_monoxide", "carbon_dioxide"):
+        unit = hass.states.get(entity_id(hass, "sensor", f"{BEDROOM}_{key}")).attributes["unit_of_measurement"]
+        assert unit == "ppm", key
+
 
 async def test_an_offline_device_is_unavailable_except_its_connectivity(hass, aioclient_mock, freezer) -> None:
     await setup_entry(hass, aioclient_mock, freezer)
