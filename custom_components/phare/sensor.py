@@ -12,11 +12,19 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
-    CONCENTRATION_PARTS_PER_MILLION,
     EntityCategory,
     PERCENTAGE,
     UnitOfTemperature,
 )
+
+try:
+    from homeassistant.const import UnitOfRatio
+
+    PARTS_PER_MILLION = UnitOfRatio.PARTS_PER_MILLION
+except ImportError:
+    # Home Assistant before UnitOfRatio, which this integration still supports (hacs.json). The
+    # old constant is deprecated where UnitOfRatio exists, and both are "ppm".
+    from homeassistant.const import CONCENTRATION_PARTS_PER_MILLION as PARTS_PER_MILLION
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -53,7 +61,7 @@ SENSORS: tuple[PhareSensorDescription, ...] = (
         translation_key="carbon_monoxide",
         device_class=SensorDeviceClass.CO,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
+        native_unit_of_measurement=PARTS_PER_MILLION,
         suggested_display_precision=0,
         value_fn=lambda r: pick_reading(r, "carbon_monoxide"),
     ),
@@ -62,7 +70,7 @@ SENSORS: tuple[PhareSensorDescription, ...] = (
         translation_key="carbon_dioxide",
         device_class=SensorDeviceClass.CO2,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
+        native_unit_of_measurement=PARTS_PER_MILLION,
         suggested_display_precision=0,
         value_fn=lambda r: pick_reading(r, "carbon_dioxide"),
     ),
