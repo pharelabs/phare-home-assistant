@@ -18,10 +18,14 @@ STALE_AFTER = timedelta(minutes=15)
 
 
 def coerce_hw(value: Any) -> int | None:
-    """`hw` arrives as "9" or 9; anything unreadable is None (treated as unknown, not capable)."""
+    """`hw` arrives as "9", 9 or, on early boards, "PH01_07"; anything unreadable is None
+    (treated as unknown, not capable)."""
+    text = str(value).strip().upper() if value is not None else ""
+    if text.startswith("PH01_"):
+        text = text[len("PH01_"):]
     try:
-        return int(str(value))
-    except (TypeError, ValueError):
+        return int(text)
+    except ValueError:
         return None
 
 
@@ -53,6 +57,11 @@ class PhareSpace:
     # None until /v1/spaces has reported it: a home known only from readings has no armed flag,
     # and a panel that cannot read the flag must not exist.
     armed: bool | None = None
+    # The wireless interconnect: one alarm detecting smoke sounds every alarm in the home. On only
+    # while every compatible device has it on. None until /v1/spaces has reported the home.
+    remote_ic: bool | None = None
+    # IANA zone of the home's address, when the API knows it: the night path schedule runs on it.
+    time_zone: str | None = None
     device_ids: set[str] = field(default_factory=set)
 
     @property
@@ -67,8 +76,16 @@ class PhareDevice:
     name: str | None = None
     room: str | None = None
     hw: int | None = None
-    firmware: str | None = None
+    # fw_esp / fw_efr / fw_nrf -> version, only the chips the device reports
+    firmware: dict[str, str] = field(default_factory=dict)
+    # Optional on the API: absent for units provisioned before it was recorded, and the ICCID
+    # only on boards with a SIM.
+    mac: str | None = None
+    iccid: str | None = None
     armed: bool = False
+    # The device's own interconnect setting. None when it was never switched either way: it then
+    # follows the home's flag (see PhareData.device_interconnect).
+    remote_ic: bool | None = None
     # From /v1/devices/status, which a token only gets for directly assigned devices; None for
     # the rest, whose reachability is judged from the age of their last reading instead.
     online: bool | None = None
@@ -97,6 +114,17 @@ class PhareDevice:
 class PhareData:
     spaces: dict[str, PhareSpace] = field(default_factory=dict)
     devices: dict[str, PhareDevice] = field(default_factory=dict)
+
+    def device_interconnect(self, device_id: str) -> bool | None:
+        """Whether a device takes part in the interconnect: its own setting, or the home's flag
+        when it was never switched either way (the API omits the key then)."""
+        device = self.devices.get(device_id)
+        if device is None:
+            return None
+        if device.remote_ic is not None:
+            return device.remote_ic
+        space = self.spaces.get(device.space_id or "")
+        return space.remote_ic if space else None
 
 
 def merge_alerts(
@@ -146,6 +174,9 @@ def build_data(
             address=raw.get("address"),
             name=raw.get("name"),
             armed=bool(raw.get("armed", False)),
+            # The list response always carries it; a home with no stored value is off.
+            remote_ic=bool(raw.get("remote_ic", False)),
+            time_zone=raw.get("address_tz") or None,
         )
 
     for raw in devices:
@@ -158,8 +189,11 @@ def build_data(
             name=raw.get("name"),
             room=raw.get("room"),
             hw=coerce_hw(raw.get("hw")),
-            firmware=raw.get("fw_esp"),
+            firmware={k: str(raw[k]) for k in ("fw_esp", "fw_efr", "fw_nrf") if raw.get(k)},
+            mac=raw.get("mac") or None,
+            iccid=raw.get("iccid") or None,
             armed=bool(raw.get("armed", False)),
+            remote_ic=raw["remote_ic"] if isinstance(raw.get("remote_ic"), bool) else None,
         )
 
     # Readings carry the authoritative space and room for a device, and are the only inventory a
@@ -203,3 +237,30 @@ def build_data(
         device.active_alerts[code] = alert
 
     return data
+
+
+def firmware_summary(firmware: dict[str, str], chips: tuple[tuple[str, str], ...]) -> str | None:
+    """Every chip's version on one line, for Home Assistant's single firmware field:
+    "Smoke alarm v2.1.0 · Controller v1.4.0 · Cellular modem v1.0.0"."""
+    parts = [f"{label} {firmware[key]}" for key, label in chips if firmware.get(key)]
+    return " · ".join(parts) or None
+
+
+def hardware_name(hw: int | None, names: dict[int, str]) -> str:
+    """The model as the Phare app names it; an unknown revision keeps its number visible."""
+    if hw is None:
+        return "Phare"
+    return names.get(hw, f"Phare (hw {hw})")
+
+
+def parse_version(value: str | None) -> tuple[int, int, int] | None:
+    """"v1.2.0", "1.2", "v0.6.1-7-gf7e18ba" -> (major, minor, patch); None if unreadable."""
+    if not value:
+        return None
+    core = str(value).strip().lstrip("vV").split("-", 1)[0].split("+", 1)[0]
+    parts = core.split(".")
+    try:
+        numbers = [int(p) for p in parts[:3]]
+    except ValueError:
+        return None
+    return tuple(numbers + [0] * (3 - len(numbers)))  # type: ignore[return-value]

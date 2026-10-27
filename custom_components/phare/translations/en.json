@@ -35,33 +35,219 @@
   },
   "entity": {
     "sensor": {
-      "temperature": { "name": "Temperature" },
-      "humidity": { "name": "Humidity" },
-      "carbon_monoxide": { "name": "Carbon monoxide" },
-      "carbon_dioxide": { "name": "Carbon dioxide" },
-      "voc": { "name": "Volatile organic compounds" },
-      "air_quality": { "name": "Air quality index" },
-      "battery": { "name": "Battery" }
+      "temperature": {
+        "name": "Temperature"
+      },
+      "humidity": {
+        "name": "Humidity"
+      },
+      "carbon_monoxide": {
+        "name": "Carbon monoxide"
+      },
+      "carbon_dioxide": {
+        "name": "Carbon dioxide"
+      },
+      "voc": {
+        "name": "Volatile organic compounds"
+      },
+      "air_quality": {
+        "name": "Air quality index"
+      },
+      "battery": {
+        "name": "Battery level"
+      },
+      "iccid": {
+        "name": "SIM card (ICCID)"
+      }
     },
     "binary_sensor": {
-      "connectivity": { "name": "Connectivity" },
-      "alert_co": { "name": "Carbon monoxide alarm" },
-      "alert_fire": { "name": "Smoke alarm" },
-      "alert_mvmt": { "name": "Movement" },
-      "alert_tmp": { "name": "Temperature alert" },
-      "alert_hum": { "name": "Humidity alert" },
-      "alert_bp": { "name": "Pipe burst alert" },
-      "alert_flt": { "name": "Device fault" },
-      "alert_pwr": { "name": "Mains power lost" },
-      "alert_bat": { "name": "Battery alert" }
+      "connectivity": {
+        "name": "Connectivity"
+      },
+      "alert_co": {
+        "name": "Carbon monoxide alarm"
+      },
+      "alert_fire": {
+        "name": "Smoke alarm"
+      },
+      "alert_mvmt": {
+        "name": "Movement"
+      },
+      "alert_tmp": {
+        "name": "Temperature alarm",
+        "state": {
+          "off": "Normal",
+          "on": "Out of range"
+        }
+      },
+      "alert_hum": {
+        "name": "Humidity alarm",
+        "state": {
+          "off": "Normal",
+          "on": "Out of range"
+        }
+      },
+      "alert_flt": {
+        "name": "Device health",
+        "state": {
+          "off": "OK",
+          "on": "Fault"
+        }
+      },
+      "alert_pwr": {
+        "name": "Mains power",
+        "state": {
+          "off": "Connected",
+          "on": "Lost"
+        }
+      },
+      "alert_bat": {
+        "name": "Battery"
+      }
     },
     "alarm_control_panel": {
-      "break_in": { "name": "Break-in alarm" }
+      "break_in": {
+        "name": "Break-in alarm"
+      }
     },
     "button": {
-      "test": { "name": "Test" },
-      "identify": { "name": "Identify" },
-      "silence": { "name": "Silence" }
+      "test": {
+        "name": "Test"
+      },
+      "identify": {
+        "name": "Identify"
+      },
+      "silence": {
+        "name": "Silence"
+      }
+    },
+    "switch": {
+      "break_in": {
+        "name": "Break-in alarm"
+      },
+      "interconnect": {
+        "name": "Wireless interconnect"
+      },
+      "night_path": {
+        "name": "Night path light"
+      },
+      "fire_alerts": {
+        "name": "Smoke alerts"
+      },
+      "power_alerts": {
+        "name": "Mains power alerts"
+      },
+      "battery_alerts": {
+        "name": "Battery alerts"
+      },
+      "co_alerts": {
+        "name": "Carbon monoxide alerts"
+      },
+      "humidity_alerts": {
+        "name": "Humidity alerts"
+      },
+      "temperature_alerts": {
+        "name": "Temperature alerts"
+      },
+      "sound_alerts": {
+        "name": "Sound alerts"
+      }
+    },
+    "number": {
+      "night_path_brightness": {
+        "name": "Night path brightness"
+      },
+      "night_path_duration": {
+        "name": "Night path duration"
+      },
+      "night_path_light_threshold": {
+        "name": "Night path ambient light threshold"
+      },
+      "night_path_sensitivity": {
+        "name": "Night path movement sensitivity"
+      },
+      "co_low": {
+        "name": "CO low alert level"
+      },
+      "co_low_clear": {
+        "name": "CO low clear level"
+      },
+      "co_moderate": {
+        "name": "CO moderate alert level"
+      },
+      "co_moderate_clear": {
+        "name": "CO moderate clear level"
+      },
+      "co_high": {
+        "name": "CO high alert level"
+      },
+      "co_high_clear": {
+        "name": "CO high clear level"
+      },
+      "co_critical": {
+        "name": "CO critical alert level"
+      },
+      "co_critical_clear": {
+        "name": "CO critical clear level"
+      },
+      "movement_threshold": {
+        "name": "Movement alert threshold"
+      },
+      "movement_hold": {
+        "name": "Movement alert hold time"
+      },
+      "humidity_level": {
+        "name": "Humidity alert level"
+      },
+      "humidity_clear": {
+        "name": "Humidity clear level"
+      },
+      "humidity_delay": {
+        "name": "Humidity alert delay"
+      },
+      "temperature_high": {
+        "name": "High temperature alert level"
+      },
+      "temperature_high_clear": {
+        "name": "High temperature clear level"
+      },
+      "temperature_very_high": {
+        "name": "Very high temperature alert level"
+      },
+      "temperature_very_high_clear": {
+        "name": "Very high temperature clear level"
+      },
+      "temperature_delay": {
+        "name": "Temperature alert delay"
+      },
+      "sound_loud": {
+        "name": "Loud sound alert level"
+      },
+      "sound_very_loud": {
+        "name": "Very loud sound alert level"
+      },
+      "sound_repeat": {
+        "name": "Sound alert repeat interval"
+      }
+    },
+    "select": {
+      "night_path_mode": {
+        "name": "Night path trigger mode",
+        "state": {
+          "dark": "Dark",
+          "schedule": "Schedule only",
+          "dark_and_schedule": "Dark and schedule",
+          "dark_or_schedule": "Dark or schedule"
+        }
+      }
+    },
+    "time": {
+      "night_path_start": {
+        "name": "Night path schedule start"
+      },
+      "night_path_end": {
+        "name": "Night path schedule end"
+      }
     }
   }
 }

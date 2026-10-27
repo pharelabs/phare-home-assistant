@@ -181,6 +181,19 @@ class PhareApiClient:
         """A fresh signing secret; the old one stops verifying at once."""
         return ((await self._data("POST", "/v1/user/webhook/rotate")) or {}).get("webhook_secret")
 
+    async def update_space(self, space_id: str, patch: dict[str, Any]) -> dict[str, Any]:
+        """Change a home. Only an owner may send anything but `armed` (a member gets 403)."""
+        return await self._data("POST", f"/v1/spaces/{space_id}", json=patch) or {}
+
+    async def device_settings(self, device_id: str) -> dict[str, Any]:
+        """The device's settings: `reported` is what the device has applied, `desired` what was
+        asked and not yet applied."""
+        return await self._data("GET", f"/v1/devices/{device_id}/settings") or {}
+
+    async def update_device_settings(self, device_id: str, settings: dict[str, int]) -> dict[str, Any]:
+        """Write firmware settings (raw keys, integer values) to one device."""
+        return await self._data("POST", f"/v1/devices/{device_id}/settings", json=settings) or {}
+
     async def arm(self, device_id: str, armed: bool) -> dict[str, Any]:
         return await self._data("POST", f"/v1/devices/{device_id}/arm", json={"armed": armed}) or {}
 

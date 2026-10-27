@@ -13,6 +13,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import (
     CONCENTRATION_PARTS_PER_MILLION,
+    EntityCategory,
     PERCENTAGE,
     UnitOfTemperature,
 )
@@ -53,7 +54,7 @@ SENSORS: tuple[PhareSensorDescription, ...] = (
         device_class=SensorDeviceClass.CO,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=CONCENTRATION_PARTS_PER_MILLION,
-        suggested_display_precision=1,
+        suggested_display_precision=0,
         value_fn=lambda r: pick_reading(r, "carbon_monoxide"),
     ),
     PhareSensorDescription(
@@ -95,6 +96,11 @@ SENSORS: tuple[PhareSensorDescription, ...] = (
 )
 
 
+# The SIM's ICCID. Home Assistant's device card has no field for it, so it is a diagnostic entity,
+# created only for boards that report one (the cellular revisions).
+ICCID = SensorEntityDescription(key="iccid", translation_key="iccid", entity_category=EntityCategory.DIAGNOSTIC)
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: PhareConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
@@ -105,8 +111,11 @@ async def async_setup_entry(
     def add_new() -> None:
         """A sensor exists only for a quantity the device has reported: a C1 Core never gets a
         humidity sensor sitting at unknown forever."""
-        new: list[PhareSensor] = []
+        new: list[SensorEntity] = []
         for device in coordinator.data.devices.values():
+            if device.iccid and (device.device_id, "iccid") not in known:
+                known.add((device.device_id, "iccid"))
+                new.append(PhareIccidSensor(coordinator, device.device_id))
             for description in SENSORS:
                 if (device.device_id, description.key) in known:
                     continue
@@ -135,3 +144,22 @@ class PhareSensor(PhareDeviceEntity, SensorEntity):
     def native_value(self) -> float | None:
         device = self.device
         return self.entity_description.value_fn(device.readings) if device else None
+
+
+class PhareIccidSensor(PhareDeviceEntity, SensorEntity):
+    entity_description = ICCID
+
+    def __init__(self, coordinator: PhareCoordinator, device_id: str) -> None:
+        super().__init__(coordinator, device_id)
+        self._attr_unique_id = f"{device_id}_iccid"
+
+    @property
+    def available(self) -> bool:
+        # A record of the hardware, not a reading: it stays readable while the device is offline,
+        # which is when someone checking the SIM most needs it.
+        return self.coordinator.last_update_success and self.device is not None
+
+    @property
+    def native_value(self) -> str | None:
+        device = self.device
+        return device.iccid if device else None
