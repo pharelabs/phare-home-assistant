@@ -1,0 +1,253 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connecta Phare Protect",
+        "description": "Crea un token d'accés personal a l'app Phare Protect (Settings → API tokens) i enganxa'l aquí. Un token amb permís de control permet a Home Assistant armar, provar i silenciar els teus dispositius.",
+        "data": {
+          "token": "Token d'accés personal",
+          "base_url": "URL base de l'API"
+        },
+        "data_description": {
+          "base_url": "Deixa-ho tal com està tret que Phare Labs t'hagi indicat el contrari."
+        }
+      },
+      "reauth_confirm": {
+        "title": "El teu token de Phare ja no funciona",
+        "description": "S'ha revocat, ha caducat o el teu pla de Phare ja no inclou l'accés a l'API. Crea un token nou a l'app Phare Protect, o revisa el teu pla, i enganxa aquí un token que funcioni.",
+        "data": {
+          "token": "Token d'accés personal"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "S'ha rebutjat el token. Comprova que l'has copiat sencer i que no s'ha revocat.",
+      "cannot_connect": "No s'ha pogut connectar amb l'API de Phare.",
+      "https_required": "L'URL base de l'API ha de començar per https://.",
+      "membership_required": "El teu pla de Phare no inclou l'accés a l'API. Revisa el teu pla a l'app Phare Protect i torna-ho a provar.",
+      "unknown": "Error inesperat. Revisa els registres."
+    },
+    "abort": {
+      "already_configured": "Aquest compte de Phare ja està configurat.",
+      "reauth_successful": "S'ha actualitzat el token.",
+      "wrong_account": "Aquest token pertany a un altre compte de Phare."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Temperatura"
+      },
+      "humidity": {
+        "name": "Humitat"
+      },
+      "carbon_monoxide": {
+        "name": "Monòxid de carboni"
+      },
+      "carbon_dioxide": {
+        "name": "Diòxid de carboni"
+      },
+      "voc": {
+        "name": "Compostos orgànics volàtils"
+      },
+      "air_quality": {
+        "name": "Índex de qualitat de l'aire"
+      },
+      "battery": {
+        "name": "Nivell de bateria"
+      },
+      "iccid": {
+        "name": "Targeta SIM (ICCID)"
+      }
+    },
+    "binary_sensor": {
+      "connectivity": {
+        "name": "Connectivitat"
+      },
+      "alert_co": {
+        "name": "Alarma de monòxid de carboni"
+      },
+      "alert_fire": {
+        "name": "Alarma de fum"
+      },
+      "alert_mvmt": {
+        "name": "Moviment"
+      },
+      "alert_tmp": {
+        "name": "Alarma de temperatura",
+        "state": {
+          "off": "Normal",
+          "on": "Fora de rang"
+        }
+      },
+      "alert_hum": {
+        "name": "Alarma d'humitat",
+        "state": {
+          "off": "Normal",
+          "on": "Fora de rang"
+        }
+      },
+      "alert_flt": {
+        "name": "Estat del dispositiu",
+        "state": {
+          "off": "Correcte",
+          "on": "Avaria"
+        }
+      },
+      "alert_pwr": {
+        "name": "Alimentació elèctrica",
+        "state": {
+          "off": "Connectada",
+          "on": "Tallada"
+        }
+      },
+      "alert_bat": {
+        "name": "Bateria"
+      }
+    },
+    "alarm_control_panel": {
+      "break_in": {
+        "name": "Alarma d'intrusió"
+      }
+    },
+    "button": {
+      "test": {
+        "name": "Prova"
+      },
+      "identify": {
+        "name": "Identifica"
+      },
+      "silence": {
+        "name": "Silencia"
+      }
+    },
+    "switch": {
+      "break_in": {
+        "name": "Alarma d'intrusió"
+      },
+      "interconnect": {
+        "name": "Interconnexió sense fil"
+      },
+      "night_path": {
+        "name": "Llum de pas nocturna"
+      },
+      "fire_alerts": {
+        "name": "Alertes de fum"
+      },
+      "power_alerts": {
+        "name": "Alertes de tall de corrent"
+      },
+      "battery_alerts": {
+        "name": "Alertes de bateria"
+      },
+      "co_alerts": {
+        "name": "Alertes de monòxid de carboni"
+      },
+      "humidity_alerts": {
+        "name": "Alertes d'humitat"
+      },
+      "temperature_alerts": {
+        "name": "Alertes de temperatura"
+      },
+      "sound_alerts": {
+        "name": "Alertes de so"
+      }
+    },
+    "number": {
+      "night_path_brightness": {
+        "name": "Brillantor de la llum de pas"
+      },
+      "night_path_duration": {
+        "name": "Durada de la llum de pas"
+      },
+      "night_path_light_threshold": {
+        "name": "Llindar de llum ambiental de la llum de pas"
+      },
+      "night_path_sensitivity": {
+        "name": "Sensibilitat al moviment de la llum de pas"
+      },
+      "co_low": {
+        "name": "Nivell d'alerta baix de CO"
+      },
+      "co_low_clear": {
+        "name": "Nivell de fi d'alerta baix de CO"
+      },
+      "co_moderate": {
+        "name": "Nivell d'alerta moderat de CO"
+      },
+      "co_moderate_clear": {
+        "name": "Nivell de fi d'alerta moderat de CO"
+      },
+      "co_high": {
+        "name": "Nivell d'alerta alt de CO"
+      },
+      "co_high_clear": {
+        "name": "Nivell de fi d'alerta alt de CO"
+      },
+      "co_critical": {
+        "name": "Nivell d'alerta crític de CO"
+      },
+      "co_critical_clear": {
+        "name": "Nivell de fi d'alerta crític de CO"
+      },
+      "movement_threshold": {
+        "name": "Llindar d'alerta de moviment"
+      },
+      "movement_hold": {
+        "name": "Temps de manteniment de l'alerta de moviment"
+      },
+      "humidity_level": {
+        "name": "Nivell d'alerta d'humitat"
+      },
+      "humidity_clear": {
+        "name": "Nivell de fi d'alerta d'humitat"
+      },
+      "humidity_delay": {
+        "name": "Retard de l'alerta d'humitat"
+      },
+      "temperature_high": {
+        "name": "Nivell d'alerta de temperatura alta"
+      },
+      "temperature_high_clear": {
+        "name": "Nivell de fi d'alerta de temperatura alta"
+      },
+      "temperature_very_high": {
+        "name": "Nivell d'alerta de temperatura molt alta"
+      },
+      "temperature_very_high_clear": {
+        "name": "Nivell de fi d'alerta de temperatura molt alta"
+      },
+      "temperature_delay": {
+        "name": "Retard de l'alerta de temperatura"
+      },
+      "sound_loud": {
+        "name": "Nivell d'alerta de so fort"
+      },
+      "sound_very_loud": {
+        "name": "Nivell d'alerta de so molt fort"
+      },
+      "sound_repeat": {
+        "name": "Interval de repetició de l'alerta de so"
+      }
+    },
+    "select": {
+      "night_path_mode": {
+        "name": "Activació de la llum de pas",
+        "state": {
+          "dark": "Foscor",
+          "schedule": "Només horari",
+          "dark_and_schedule": "Foscor i horari",
+          "dark_or_schedule": "Foscor o horari"
+        }
+      }
+    },
+    "time": {
+      "night_path_start": {
+        "name": "Inici de l'horari de la llum de pas"
+      },
+      "night_path_end": {
+        "name": "Fi de l'horari de la llum de pas"
+      }
+    }
+  }
+}

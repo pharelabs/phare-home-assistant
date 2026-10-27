@@ -18,7 +18,7 @@ from .entity import PhareDeviceEntity
 
 # Alert types every revision raises. Movement needs the radar (hw 10+); the rest arrive per
 # device as the API reports them, so a type a device never raises is simply never created.
-BASE_ALERT_CODES = ("co", "fire", "tmp", "hum", "bp", "flt", "pwr", "bat")
+BASE_ALERT_CODES = ("co", "fire", "tmp", "hum", "flt", "pwr", "bat")
 
 ALERT_DESCRIPTIONS = {
     code: BinarySensorEntityDescription(

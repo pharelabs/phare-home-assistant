@@ -1,0 +1,253 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Conectar Phare Protect",
+        "description": "Crea un token de acceso personal en la app Phare Protect (Settings → API tokens) y pégalo aquí. Un token con permiso de control permite a Home Assistant armar, probar y silenciar tus dispositivos.",
+        "data": {
+          "token": "Token de acceso personal",
+          "base_url": "URL base de la API"
+        },
+        "data_description": {
+          "base_url": "Déjalo como está salvo que Phare Labs te indique lo contrario."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Tu token de Phare ya no funciona",
+        "description": "Se ha revocado, ha caducado o tu plan de Phare ya no incluye acceso a la API. Crea un token nuevo en la app Phare Protect, o revisa tu plan, y pega aquí un token que funcione.",
+        "data": {
+          "token": "Token de acceso personal"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Se ha rechazado el token. Comprueba que lo has copiado completo y que no se ha revocado.",
+      "cannot_connect": "No se ha podido conectar con la API de Phare.",
+      "https_required": "La URL base de la API debe empezar por https://.",
+      "membership_required": "Tu plan de Phare no incluye acceso a la API. Revisa tu plan en la app Phare Protect y vuelve a intentarlo.",
+      "unknown": "Error inesperado. Revisa los registros."
+    },
+    "abort": {
+      "already_configured": "Esta cuenta de Phare ya está configurada.",
+      "reauth_successful": "Token actualizado.",
+      "wrong_account": "Ese token pertenece a otra cuenta de Phare."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Temperatura"
+      },
+      "humidity": {
+        "name": "Humedad"
+      },
+      "carbon_monoxide": {
+        "name": "Monóxido de carbono"
+      },
+      "carbon_dioxide": {
+        "name": "Dióxido de carbono"
+      },
+      "voc": {
+        "name": "Compuestos orgánicos volátiles"
+      },
+      "air_quality": {
+        "name": "Índice de calidad del aire"
+      },
+      "battery": {
+        "name": "Nivel de batería"
+      },
+      "iccid": {
+        "name": "Tarjeta SIM (ICCID)"
+      }
+    },
+    "binary_sensor": {
+      "connectivity": {
+        "name": "Conectividad"
+      },
+      "alert_co": {
+        "name": "Alarma de monóxido de carbono"
+      },
+      "alert_fire": {
+        "name": "Alarma de humo"
+      },
+      "alert_mvmt": {
+        "name": "Movimiento"
+      },
+      "alert_tmp": {
+        "name": "Alarma de temperatura",
+        "state": {
+          "off": "Normal",
+          "on": "Fuera de rango"
+        }
+      },
+      "alert_hum": {
+        "name": "Alarma de humedad",
+        "state": {
+          "off": "Normal",
+          "on": "Fuera de rango"
+        }
+      },
+      "alert_flt": {
+        "name": "Estado del dispositivo",
+        "state": {
+          "off": "Correcto",
+          "on": "Avería"
+        }
+      },
+      "alert_pwr": {
+        "name": "Alimentación eléctrica",
+        "state": {
+          "off": "Conectada",
+          "on": "Cortada"
+        }
+      },
+      "alert_bat": {
+        "name": "Batería"
+      }
+    },
+    "alarm_control_panel": {
+      "break_in": {
+        "name": "Alarma de intrusión"
+      }
+    },
+    "button": {
+      "test": {
+        "name": "Probar"
+      },
+      "identify": {
+        "name": "Identificar"
+      },
+      "silence": {
+        "name": "Silenciar"
+      }
+    },
+    "switch": {
+      "break_in": {
+        "name": "Alarma de intrusión"
+      },
+      "interconnect": {
+        "name": "Interconexión inalámbrica"
+      },
+      "night_path": {
+        "name": "Luz de paso nocturna"
+      },
+      "fire_alerts": {
+        "name": "Alertas de humo"
+      },
+      "power_alerts": {
+        "name": "Alertas de corte de corriente"
+      },
+      "battery_alerts": {
+        "name": "Alertas de batería"
+      },
+      "co_alerts": {
+        "name": "Alertas de monóxido de carbono"
+      },
+      "humidity_alerts": {
+        "name": "Alertas de humedad"
+      },
+      "temperature_alerts": {
+        "name": "Alertas de temperatura"
+      },
+      "sound_alerts": {
+        "name": "Alertas de sonido"
+      }
+    },
+    "number": {
+      "night_path_brightness": {
+        "name": "Brillo de la luz de paso"
+      },
+      "night_path_duration": {
+        "name": "Duración de la luz de paso"
+      },
+      "night_path_light_threshold": {
+        "name": "Umbral de luz ambiental de la luz de paso"
+      },
+      "night_path_sensitivity": {
+        "name": "Sensibilidad al movimiento de la luz de paso"
+      },
+      "co_low": {
+        "name": "Nivel de alerta bajo de CO"
+      },
+      "co_low_clear": {
+        "name": "Nivel de fin de alerta bajo de CO"
+      },
+      "co_moderate": {
+        "name": "Nivel de alerta moderado de CO"
+      },
+      "co_moderate_clear": {
+        "name": "Nivel de fin de alerta moderado de CO"
+      },
+      "co_high": {
+        "name": "Nivel de alerta alto de CO"
+      },
+      "co_high_clear": {
+        "name": "Nivel de fin de alerta alto de CO"
+      },
+      "co_critical": {
+        "name": "Nivel de alerta crítico de CO"
+      },
+      "co_critical_clear": {
+        "name": "Nivel de fin de alerta crítico de CO"
+      },
+      "movement_threshold": {
+        "name": "Umbral de alerta de movimiento"
+      },
+      "movement_hold": {
+        "name": "Tiempo de mantenimiento de la alerta de movimiento"
+      },
+      "humidity_level": {
+        "name": "Nivel de alerta de humedad"
+      },
+      "humidity_clear": {
+        "name": "Nivel de fin de alerta de humedad"
+      },
+      "humidity_delay": {
+        "name": "Retardo de la alerta de humedad"
+      },
+      "temperature_high": {
+        "name": "Nivel de alerta de temperatura alta"
+      },
+      "temperature_high_clear": {
+        "name": "Nivel de fin de alerta de temperatura alta"
+      },
+      "temperature_very_high": {
+        "name": "Nivel de alerta de temperatura muy alta"
+      },
+      "temperature_very_high_clear": {
+        "name": "Nivel de fin de alerta de temperatura muy alta"
+      },
+      "temperature_delay": {
+        "name": "Retardo de la alerta de temperatura"
+      },
+      "sound_loud": {
+        "name": "Nivel de alerta de sonido fuerte"
+      },
+      "sound_very_loud": {
+        "name": "Nivel de alerta de sonido muy fuerte"
+      },
+      "sound_repeat": {
+        "name": "Intervalo de repetición de la alerta de sonido"
+      }
+    },
+    "select": {
+      "night_path_mode": {
+        "name": "Activación de la luz de paso",
+        "state": {
+          "dark": "Oscuridad",
+          "schedule": "Solo horario",
+          "dark_and_schedule": "Oscuridad y horario",
+          "dark_or_schedule": "Oscuridad u horario"
+        }
+      }
+    },
+    "time": {
+      "night_path_start": {
+        "name": "Inicio del horario de la luz de paso"
+      },
+      "night_path_end": {
+        "name": "Fin del horario de la luz de paso"
+      }
+    }
+  }
+}

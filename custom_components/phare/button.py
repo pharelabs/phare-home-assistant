@@ -7,7 +7,6 @@ from homeassistant.components.button import (
     ButtonEntity,
     ButtonEntityDescription,
 )
-from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -16,13 +15,14 @@ from .api import PhareApiError, PhareAuthError, PhareConnectionError, PhareMembe
 from .coordinator import PhareConfigEntry, PhareCoordinator
 from .entity import PhareDeviceEntity
 
+# No entity category: these act on the alarm itself (the test sounds it, identify flashes it), so
+# they belong with the controls, not under Diagnostic, which is for reading the device's health.
 BUTTONS: tuple[ButtonEntityDescription, ...] = (
-    ButtonEntityDescription(key="test", translation_key="test", entity_category=EntityCategory.DIAGNOSTIC),
+    ButtonEntityDescription(key="test", translation_key="test"),
     ButtonEntityDescription(
         key="identify",
         translation_key="identify",
         device_class=ButtonDeviceClass.IDENTIFY,
-        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     # Silencing a live alarm from an automation is a decision each household should make on
     # purpose, so the button exists but starts disabled.

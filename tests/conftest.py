@@ -31,3 +31,30 @@ def mock_api(aioclient_mock, *, spaces=None, spaces_data=None, statuses=None, al
     aioclient_mock.get(f"{BASE}/v1/spaces/data", json=spaces_data or payload("spaces_data.json"))
     aioclient_mock.get(f"{BASE}/v1/devices/status", json=statuses or payload("devices_status.json"))
     aioclient_mock.get(f"{BASE}/v1/alerts", json=alerts or payload("alerts.json"))
+    # Every device's settings, empty unless a test registered its own first (the first
+    # matching mock answers).
+    for device_id in sorted(_device_ids(devices or payload("devices.json"),
+                                        spaces_data or payload("spaces_data.json"),
+                                        statuses or payload("devices_status.json"))):
+        aioclient_mock.get(
+            f"{BASE}/v1/devices/{device_id}/settings",
+            json={"data": {"device_id": device_id, "reported": {}, "desired": {}}},
+        )
+
+
+def _device_ids(*payloads) -> set[str]:
+    found: set[str] = set()
+
+    def walk(node):
+        if isinstance(node, dict):
+            if isinstance(node.get("device_id"), (str, int)):
+                found.add(str(node["device_id"]))
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    for p in payloads:
+        walk(p)
+    return found

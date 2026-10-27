@@ -10,13 +10,12 @@ from homeassistant.components.alarm_control_panel import (
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api import PhareApiError, PhareAuthError, PhareConnectionError, PhareMembershipRequiredError
-from .const import DOMAIN, HW_WITHOUT_RADAR, MANUFACTURER
+from .const import HW_WITHOUT_RADAR
 from .coordinator import PhareConfigEntry, PhareCoordinator
+from .entity import PhareHomeEntity
 
 def armable_device_ids(coordinator: PhareCoordinator, space_id: str) -> list[str]:
     """Devices in the home the API will accept an arm call for (hw 8 and 9 answer 400).
@@ -59,29 +58,15 @@ async def async_setup_entry(
     entry.async_on_unload(coordinator.async_add_listener(add_new))
 
 
-class PhareBreakInAlarm(CoordinatorEntity[PhareCoordinator], AlarmControlPanelEntity):
-    _attr_has_entity_name = True
+class PhareBreakInAlarm(PhareHomeEntity, AlarmControlPanelEntity):
     _attr_translation_key = "break_in"
     _attr_supported_features = AlarmControlPanelEntityFeature.ARM_AWAY
     _attr_code_format: CodeFormat | None = None
     _attr_code_arm_required = False
 
     def __init__(self, coordinator: PhareCoordinator, space_id: str) -> None:
-        super().__init__(coordinator)
-        self.space_id = space_id
+        super().__init__(coordinator, space_id)
         self._attr_unique_id = f"{space_id}_break_in"
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        space = self.coordinator.data.spaces.get(self.space_id)
-        name = space.display_name if space else self.space_id
-        return DeviceInfo(
-            identifiers={(DOMAIN, self.space_id)},
-            manufacturer=MANUFACTURER,
-            model="Home",
-            name=name,
-            suggested_area=name,
-        )
 
     @property
     def alarm_state(self) -> AlarmControlPanelState | None:

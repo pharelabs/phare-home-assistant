@@ -316,3 +316,18 @@ async def test_losing_the_external_url_forgets_the_webhook(hass, aioclient_mock,
     assert await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
     assert len(registration_calls(aioclient_mock)) == 1
+
+
+@pytest.mark.parametrize("code", ["zz", "not_a_type"])
+async def test_a_pushed_alert_of_a_type_not_exposed_leaves_no_trace(hass, aioclient_mock, freezer, hass_client_no_auth, code) -> None:
+    entry = await setup_with_webhook(hass, aioclient_mock, freezer)
+    events = []
+    hass.bus.async_listen(EVENT_ALERT, lambda e: events.append(e))
+    before = {s.entity_id: s.state for s in hass.states.async_all()}
+
+    resp = await post(hass, await hass_client_no_auth(), entry, alert_payload(KITCHEN, code))
+
+    assert resp.status == 200, "acknowledged, so the API does not retry it"
+    assert events == []
+    assert {s.entity_id: s.state for s in hass.states.async_all()} == before
+    assert (KITCHEN, code) not in entry.runtime_data._active_alerts

@@ -7,11 +7,11 @@ import logging
 
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import PhareApiClient
-from .const import CONF_BASE_URL, CONF_TOKEN, DEFAULT_BASE_URL, DOMAIN
+from .const import ALERT_TYPE_CODES, CONF_BASE_URL, CONF_TOKEN, DEFAULT_BASE_URL, DOMAIN
 from . import webhook as phare_webhook
 from .coordinator import PhareConfigEntry, PhareCoordinator
 
@@ -22,10 +22,26 @@ PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
     Platform.ALARM_CONTROL_PANEL,
     Platform.BUTTON,
+    Platform.NUMBER,
+    Platform.SELECT,
+    Platform.SWITCH,
+    Platform.TIME,
 ]
 
 
+def _remove_dropped_alert_entities(hass: HomeAssistant, entry: PhareConfigEntry) -> None:
+    """An alert type taken off ALERT_TYPE_CODES leaves its entities behind in the registry of
+    every install that had them, unavailable but listed. Remove them, so a dropped type leaves no
+    trace."""
+    registry = er.async_get(hass)
+    for entity in er.async_entries_for_config_entry(registry, entry.entry_id):
+        _, sep, code = entity.unique_id.rpartition("_alert_")
+        if entity.domain == "binary_sensor" and sep and code not in ALERT_TYPE_CODES:
+            registry.async_remove(entity.entity_id)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: PhareConfigEntry) -> bool:
+    _remove_dropped_alert_entities(hass, entry)
     client = PhareApiClient(
         async_get_clientsession(hass),
         entry.data[CONF_TOKEN],
