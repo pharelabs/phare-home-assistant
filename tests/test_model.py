@@ -208,7 +208,7 @@ def test_recorded_token_sees_one_device_directly_and_one_through_its_home(record
     direct = [d for d in recorded_data.devices.values() if d.hw is not None]
     via_home = [d for d in recorded_data.devices.values() if d.hw is None]
     assert len(direct) == 1 and len(via_home) == 1
-    assert direct[0].hw == 7 and direct[0].online is False and direct[0].firmware.startswith("v")
+    assert direct[0].hw == 7 and direct[0].online is False and direct[0].firmware["fw_esp"].startswith("v")
     assert via_home[0].online is None and via_home[0].room and via_home[0].space_id
     assert via_home[0].space_id == direct[0].space_id, "both sit in the same home"
 
@@ -225,3 +225,143 @@ def test_recorded_timestamps_parse(recorded_data):
     for device in recorded_data.devices.values():
         if device.reading_ts:
             assert model.parse_ts(device.reading_ts) is not None, device.reading_ts
+
+
+# ── device card: hardware, firmware ──────────────────────────────────────────
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [("10", 10), (9, 9), ("PH01_07", 7), ("ph01_04", 4), ("", None), (None, None), ("x", None)],
+)
+def test_hw_reads_every_spelling_the_api_uses(raw, expected):
+    assert model.coerce_hw(raw) == expected
+
+
+@pytest.mark.parametrize(
+    ("hw", "name"),
+    [(4, "Phare C1 (v4)"), (7, "Phare C1 (v7)"), (8, "Phare C1 Core"), (9, "Phare C1"),
+     (10, "Phare C1 Pro"), (11, "Phare (hw 11)"), (None, "Phare")],
+)
+def test_hardware_is_named_as_the_app_names_it(hw, name):
+    assert model.hardware_name(hw, const.HW_MODEL) == name
+
+
+def test_every_chip_reported_shows_in_order_and_missing_ones_are_left_out():
+    chips = const.FIRMWARE_CHIPS
+    full = {"fw_nrf": "v1.0.0", "fw_esp": "v2.1.0", "fw_efr": "v1.4.0"}
+    assert model.firmware_summary(full, chips) == "Smoke alarm v2.1.0 · Controller v1.4.0 · Cellular modem v1.0.0"
+    assert model.firmware_summary({"fw_esp": "v2.1.0"}, chips) == "Smoke alarm v2.1.0"
+    assert model.firmware_summary({}, chips) is None
+
+
+def test_the_device_list_keeps_every_firmware_the_mac_and_the_iccid():
+    data = model.build_data(
+        [], [{"device_id": "119", "hw": "PH01_07", "fw_esp": "v0.6.2", "fw_efr": "v0.6.1", "fw_nrf": "v0.6.2",
+              "mac": "a1:b2:c3:d4:e5:f6", "iccid": "8900000000000000000"}], {}, [], {},
+    )
+    device = data.devices["119"]
+    assert device.hw == 7
+    assert device.firmware == {"fw_esp": "v0.6.2", "fw_efr": "v0.6.1", "fw_nrf": "v0.6.2"}
+    assert (device.mac, device.iccid) == ("a1:b2:c3:d4:e5:f6", "8900000000000000000")
+
+
+@pytest.mark.parametrize(
+    ("raw", "parsed"),
+    [("v1.2.0", (1, 2, 0)), ("1.2", (1, 2, 0)), ("v0.6.1-7-gf7e18ba", (0, 6, 1)), ("V2", (2, 0, 0)),
+     ("", None), (None, None), ("dev", None)],
+)
+def test_firmware_versions_are_read_as_the_firmware_writes_them(raw, parsed):
+    assert model.parse_version(raw) == parsed
+
+
+# ── night path rules ─────────────────────────────────────────────────────────
+
+night_path = _load("night_path")
+
+
+def _device(hw=10, esp="v1.1.0", efr="v1.1.0"):
+    firmware = {k: v for k, v in (("fw_esp", esp), ("fw_efr", efr)) if v}
+    return model.PhareDevice(device_id="119", hw=hw, firmware=firmware)
+
+
+@pytest.mark.parametrize(
+    ("device", "light", "schedule"),
+    [
+        (_device(), True, True),
+        (_device(hw=9), True, True),
+        (_device(hw=8), False, False),  # the C1 Core has no light
+        (_device(esp="v1.0.4", efr="v1.0.4"), True, False),  # schedule needs 1.1.0 on both chips
+        (_device(esp="v1.1.0", efr="v1.0.9"), True, False),
+        (_device(esp="v0.9.0"), False, False),
+        (_device(efr=None), False, False),  # an unknown version is too old: fails closed
+        (_device(hw=None), True, True),  # an unknown board is not assumed to be a Core
+    ],
+)
+def test_which_devices_get_the_light_and_its_schedule(device, light, schedule):
+    assert night_path.has_light(device) is light
+    assert night_path.has_schedule(device) is schedule
+
+
+@pytest.mark.parametrize(
+    ("confirm_ms", "option"),
+    [(0, "very_high"), (299, "very_high"), (300, "high"), (499, "high"), (500, "medium"), (999, "medium"),
+     (1000, "low"), (5000, "low")],
+)
+def test_sensitivity_reads_as_the_apps_bands(confirm_ms, option):
+    assert night_path.sensitivity_option(confirm_ms) == option
+
+
+def test_minutes_after_midnight_round_trip():
+    assert night_path.minutes_to_time(1260).isoformat() == "21:00:00"
+    assert night_path.time_to_minutes(night_path.minutes_to_time(365)) == 365
+
+
+# ── alarm settings ───────────────────────────────────────────────────────────
+
+settings_catalog = _load("settings_catalog")
+
+
+@pytest.mark.parametrize(
+    ("hw", "has", "lacks"),
+    [(8, {"smoke", "co", "power"}, {"humidity", "temperature", "movement", "sound"}),
+     (9, {"humidity", "temperature"}, {"movement", "sound"}),
+     (10, {"movement", "sound", "humidity"}, set()),
+     (None, {"movement", "sound"}, set())],
+)
+def test_each_board_offers_the_settings_of_the_sensors_it_has(hw, has, lacks):
+    features = settings_catalog.features(hw)
+    assert has <= features and not (lacks & features)
+
+
+DEFAULT_LEVELS = {"ALR_TGS_L": 10, "ALR_TGS_L_L": 5, "ALR_TGS_M": 25, "ALR_TGS_M_L": 20, "ALR_TGS_H": 50,
+                  "ALR_TGS_H_L": 45, "ALR_TGS_C": 100, "ALR_TGS_C_L": 90, "ALR_HUM_THR": 80, "ALR_HUM_L": 75,
+                  "ALR_TEMP_THR": 30, "ALR_TEMP_L": 28, "ALR_VTEMP_THR": 35, "ALR_VTEMP_L": 33,
+                  "ALR_SOUND_M": 85, "ALR_SOUND_H": 100}
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "problem"),
+    [("ALR_TGS_M", 30, None),
+     ("ALR_TGS_M_L", 26, "must not be above the CO moderate level"),
+     ("ALR_TGS_M", 19, "must not be above the CO moderate level"),
+     ("ALR_TGS_M", 50, "must be below the CO high level"),
+     ("ALR_TGS_L", 25, "must be below the CO moderate level"),
+     ("ALR_HUM_L", 80, None),  # equal is allowed: it still clears
+     ("ALR_HUM_L", 81, "must not be above the humidity level"),
+     ("ALR_TEMP_THR", 36, "must be below the very high temperature level"),
+     ("ALR_VTEMP_THR", 30, "must not be above the very high temperature level"),
+     ("ALR_SOUND_H", 85, "must be below the very loud sound level"),
+     ("ALR_HUM_DUR", 10, None)],
+)
+def test_levels_that_would_leave_an_alert_inconsistent_are_refused(key, value, problem):
+    result = settings_catalog.check(key, value, DEFAULT_LEVELS)
+    if problem is None:
+        assert result is None
+    else:
+        assert result and problem in result
+
+
+def test_every_setting_key_is_unique_and_every_label_is_a_known_key():
+    keys = [s.key for s in settings_catalog.SETTINGS]
+    assert len(keys) == len(set(keys))
+    assert set(settings_catalog.LABELS) <= set(keys)

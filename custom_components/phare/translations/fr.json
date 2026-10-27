@@ -1,0 +1,253 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connecter Phare Protect",
+        "description": "Créez un jeton d'accès personnel dans l'app Phare Protect (Settings → API tokens) et collez-le ici. Un jeton avec l'autorisation de contrôle permet à Home Assistant d'armer, de tester et de faire taire vos appareils.",
+        "data": {
+          "token": "Jeton d'accès personnel",
+          "base_url": "URL de base de l'API"
+        },
+        "data_description": {
+          "base_url": "Laissez tel quel, sauf indication contraire de Phare Labs."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Votre jeton Phare ne fonctionne plus",
+        "description": "Il a été révoqué, il a expiré, ou votre forfait Phare n'inclut plus l'accès à l'API. Créez un nouveau jeton dans l'app Phare Protect, ou vérifiez votre forfait, puis collez ici un jeton valide.",
+        "data": {
+          "token": "Jeton d'accès personnel"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Le jeton a été refusé. Vérifiez qu'il a été copié en entier et qu'il n'a pas été révoqué.",
+      "cannot_connect": "Impossible de joindre l'API Phare.",
+      "https_required": "L'URL de base de l'API doit commencer par https://.",
+      "membership_required": "Votre forfait Phare n'inclut pas l'accès à l'API. Vérifiez votre forfait dans l'app Phare Protect, puis réessayez.",
+      "unknown": "Erreur inattendue. Consultez les journaux."
+    },
+    "abort": {
+      "already_configured": "Ce compte Phare est déjà configuré.",
+      "reauth_successful": "Jeton mis à jour.",
+      "wrong_account": "Ce jeton appartient à un autre compte Phare."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Température"
+      },
+      "humidity": {
+        "name": "Humidité"
+      },
+      "carbon_monoxide": {
+        "name": "Monoxyde de carbone"
+      },
+      "carbon_dioxide": {
+        "name": "Dioxyde de carbone"
+      },
+      "voc": {
+        "name": "Composés organiques volatils"
+      },
+      "air_quality": {
+        "name": "Indice de qualité de l'air"
+      },
+      "battery": {
+        "name": "Niveau de batterie"
+      },
+      "iccid": {
+        "name": "Carte SIM (ICCID)"
+      }
+    },
+    "binary_sensor": {
+      "connectivity": {
+        "name": "Connectivité"
+      },
+      "alert_co": {
+        "name": "Alarme monoxyde de carbone"
+      },
+      "alert_fire": {
+        "name": "Alarme fumée"
+      },
+      "alert_mvmt": {
+        "name": "Mouvement"
+      },
+      "alert_tmp": {
+        "name": "Alarme température",
+        "state": {
+          "off": "Normale",
+          "on": "Hors plage"
+        }
+      },
+      "alert_hum": {
+        "name": "Alarme humidité",
+        "state": {
+          "off": "Normale",
+          "on": "Hors plage"
+        }
+      },
+      "alert_flt": {
+        "name": "État de l'appareil",
+        "state": {
+          "off": "OK",
+          "on": "Panne"
+        }
+      },
+      "alert_pwr": {
+        "name": "Alimentation secteur",
+        "state": {
+          "off": "Branchée",
+          "on": "Coupée"
+        }
+      },
+      "alert_bat": {
+        "name": "Batterie"
+      }
+    },
+    "alarm_control_panel": {
+      "break_in": {
+        "name": "Alarme intrusion"
+      }
+    },
+    "button": {
+      "test": {
+        "name": "Tester"
+      },
+      "identify": {
+        "name": "Identifier"
+      },
+      "silence": {
+        "name": "Mettre en silence"
+      }
+    },
+    "switch": {
+      "break_in": {
+        "name": "Alarme intrusion"
+      },
+      "interconnect": {
+        "name": "Interconnexion sans fil"
+      },
+      "night_path": {
+        "name": "Veilleuse de passage"
+      },
+      "fire_alerts": {
+        "name": "Alertes fumée"
+      },
+      "power_alerts": {
+        "name": "Alertes coupure secteur"
+      },
+      "battery_alerts": {
+        "name": "Alertes batterie"
+      },
+      "co_alerts": {
+        "name": "Alertes monoxyde de carbone"
+      },
+      "humidity_alerts": {
+        "name": "Alertes humidité"
+      },
+      "temperature_alerts": {
+        "name": "Alertes température"
+      },
+      "sound_alerts": {
+        "name": "Alertes sonores"
+      }
+    },
+    "number": {
+      "night_path_brightness": {
+        "name": "Luminosité de la veilleuse"
+      },
+      "night_path_duration": {
+        "name": "Durée de la veilleuse"
+      },
+      "night_path_light_threshold": {
+        "name": "Seuil de lumière ambiante de la veilleuse"
+      },
+      "night_path_sensitivity": {
+        "name": "Sensibilité au mouvement de la veilleuse"
+      },
+      "co_low": {
+        "name": "Seuil d'alerte CO bas"
+      },
+      "co_low_clear": {
+        "name": "Seuil de fin d'alerte CO bas"
+      },
+      "co_moderate": {
+        "name": "Seuil d'alerte CO modéré"
+      },
+      "co_moderate_clear": {
+        "name": "Seuil de fin d'alerte CO modéré"
+      },
+      "co_high": {
+        "name": "Seuil d'alerte CO élevé"
+      },
+      "co_high_clear": {
+        "name": "Seuil de fin d'alerte CO élevé"
+      },
+      "co_critical": {
+        "name": "Seuil d'alerte CO critique"
+      },
+      "co_critical_clear": {
+        "name": "Seuil de fin d'alerte CO critique"
+      },
+      "movement_threshold": {
+        "name": "Seuil d'alerte mouvement"
+      },
+      "movement_hold": {
+        "name": "Durée de maintien de l'alerte mouvement"
+      },
+      "humidity_level": {
+        "name": "Seuil d'alerte humidité"
+      },
+      "humidity_clear": {
+        "name": "Seuil de fin d'alerte humidité"
+      },
+      "humidity_delay": {
+        "name": "Délai de l'alerte humidité"
+      },
+      "temperature_high": {
+        "name": "Seuil d'alerte température élevée"
+      },
+      "temperature_high_clear": {
+        "name": "Seuil de fin d'alerte température élevée"
+      },
+      "temperature_very_high": {
+        "name": "Seuil d'alerte température très élevée"
+      },
+      "temperature_very_high_clear": {
+        "name": "Seuil de fin d'alerte température très élevée"
+      },
+      "temperature_delay": {
+        "name": "Délai de l'alerte température"
+      },
+      "sound_loud": {
+        "name": "Seuil d'alerte son fort"
+      },
+      "sound_very_loud": {
+        "name": "Seuil d'alerte son très fort"
+      },
+      "sound_repeat": {
+        "name": "Intervalle de répétition de l'alerte sonore"
+      }
+    },
+    "select": {
+      "night_path_mode": {
+        "name": "Déclenchement de la veilleuse",
+        "state": {
+          "dark": "Obscurité",
+          "schedule": "Horaire seul",
+          "dark_and_schedule": "Obscurité et horaire",
+          "dark_or_schedule": "Obscurité ou horaire"
+        }
+      }
+    },
+    "time": {
+      "night_path_start": {
+        "name": "Début de l'horaire de la veilleuse"
+      },
+      "night_path_end": {
+        "name": "Fin de l'horaire de la veilleuse"
+      }
+    }
+  }
+}

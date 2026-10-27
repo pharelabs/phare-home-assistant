@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import (
     PhareApiClient,
@@ -18,7 +19,8 @@ from .api import (
     PhareConnectionError,
     PhareRateLimitedError,
 )
-from .const import ALERT_WINDOW, DOMAIN, INVENTORY_REFRESH_EVERY, SCAN_INTERVAL
+from . import night_path
+from .const import ALERT_WINDOW, DOMAIN, INVENTORY_REFRESH_EVERY, PENDING_SETTINGS_FOR, SCAN_INTERVAL
 from .model import (
     PhareData,
     PhareDevice,
@@ -68,12 +70,19 @@ class PhareCoordinator(DataUpdateCoordinator[PhareData]):
         # push, or a delivery retried out of order, carries older records that must not undo it.
         self._pushed_ts: dict[tuple[str, str], datetime] = {}
         self.refresh_inventory = True
+        # Device settings (night path light, alarm settings): device_id -> what the device reported. A device is absent until its
+        # settings have been read once; its settings entities are unavailable until then.
+        self.settings: dict[str, dict[str, int]] = {}
+        # device_id -> key -> (value written, until when it is shown before the device reports it)
+        self._pending: dict[str, dict[str, tuple[int, datetime]]] = {}
 
     async def _async_update_data(self) -> PhareData:
+        inventory_read = False
         try:
             if self.refresh_inventory or self._polls % INVENTORY_REFRESH_EVERY == 0:
                 self._devices = await self.client.devices()
                 self.refresh_inventory = False
+                inventory_read = True
             spaces = await self.client.spaces()
             spaces_data = await self.client.spaces_data()
             statuses = await self.client.devices_status()
@@ -92,7 +101,63 @@ class PhareCoordinator(DataUpdateCoordinator[PhareData]):
         alerts = [alert for alert in alerts if not self._older_than_pushed(alert)]
         self._active_alerts = merge_alerts(self._active_alerts, alerts)
         self._last_poll = (spaces, spaces_data, statuses)
-        return build_data(spaces, self._devices, spaces_data, statuses, self._active_alerts)
+        data = build_data(spaces, self._devices, spaces_data, statuses, self._active_alerts)
+        await self._refresh_settings(data, all_devices=inventory_read)
+        return data
+
+    # ── device settings ──────────────────────────────────────────────────
+
+    async def _refresh_settings(self, data: PhareData, *, all_devices: bool) -> None:
+        """Settings change rarely, so every device's are read with the inventory; between those,
+        only a device with a write still waiting for its report is read again.
+
+        A failed read keeps what was known: the settings entities are a convenience, and must not
+        fail the poll that carries the alarms.
+        """
+        now = dt_util.utcnow()
+        for device_id, pending in list(self._pending.items()):
+            for key, (_, until) in list(pending.items()):
+                if until <= now:
+                    del pending[key]
+            if not pending:
+                del self._pending[device_id]
+        wanted = [
+            device.device_id for device in data.devices.values()
+            if all_devices or device.device_id in self._pending or device.device_id not in self.settings
+        ]
+        for device_id in wanted:
+            try:
+                shadow = await self.client.device_settings(device_id)
+            except (PhareApiError, PhareConnectionError) as err:
+                _LOGGER.debug("Could not read settings of %s: %s", device_id, err)
+                continue
+            reported = {k: v for k, v in (shadow.get("reported") or {}).items() if isinstance(v, int)}
+            self.settings[device_id] = reported
+            pending = self._pending.get(device_id, {})
+            for key in [k for k, (value, _) in pending.items() if reported.get(k) == value]:
+                del pending[key]
+            if device_id in self._pending and not pending:
+                del self._pending[device_id]
+
+    def setting(self, device_id: str, key: str) -> int | None:
+        """A setting as shown: a write the device has not reported yet, else what it reported, else
+        the firmware default for a night path key. None until the device's settings were read
+        once, or for an alarm setting the device does not report."""
+        reported = self.settings.get(device_id)
+        if reported is None:
+            return None
+        pending = self._pending.get(device_id, {}).get(key)
+        if pending is not None and pending[1] > dt_util.utcnow():
+            return pending[0]
+        return reported.get(key, night_path.DEFAULTS.get(key))
+
+    async def async_write_settings(self, device_id: str, values: dict[str, int]) -> None:
+        """Write settings to a device and show them at once. The device confirms on a later poll;
+        until then, and at most PENDING_SETTINGS_FOR, the written value is what is shown."""
+        await self.client.update_device_settings(device_id, values)
+        until = dt_util.utcnow() + PENDING_SETTINGS_FOR
+        self._pending.setdefault(device_id, {}).update({k: (v, until) for k, v in values.items()})
+        self.async_update_listeners()
 
     @callback
     def apply_pushed_alert(self, alert: dict[str, Any]) -> bool:

@@ -31,6 +31,7 @@ from homeassistant.helpers.network import NoURLAvailableError
 
 from .api import PhareApiError, PhareAuthError, PhareConnectionError, PhareMembershipRequiredError
 from .const import (
+    ALERT_TYPE_CODES,
     CONF_CLOUDHOOK,
     CONF_WEBHOOK_ID,
     CONF_WEBHOOK_SECRET,
@@ -240,6 +241,9 @@ def _make_handler(entry: PhareConfigEntry):
         alert = payload.get("data") or {}
         if not isinstance(alert, dict):
             return web.Response(status=400, text="alert is not an object")
+        if alert.get("type_code") not in ALERT_TYPE_CODES:
+            # Acknowledged, so the API does not retry it, and dropped: no state, no bus event.
+            return web.Response(status=200, text="ignored")
         # One alert carries several records (new, then resolved); a repeat is the same record.
         record = (delivery, str(alert.get("stage")), str(alert.get("ts")))
         if delivery and record in seen:
