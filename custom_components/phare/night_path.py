@@ -4,7 +4,7 @@ Plain Python, no Home Assistant import, so it is tested without Home Assistant. 
 ranges, defaults and gates mirror the Phare app and the API's settings validator; the firmware is
 the source of truth for all of them.
 
-The settings live in each device's "settings" shadow under raw firmware keys. What is shown is
+The settings are each device's own, under the API's raw setting keys. What is shown is
 what the device reported, not what was asked: a write is shown at once, then confirmed when the
 device reports it. The schedule runs on the device's own clock offset, which the API sets from the
 home's time zone with every schedule write; this integration never sends or shows it.
@@ -25,7 +25,7 @@ MODE = "NPATH_MODE"
 START = "NPATH_START"
 STOP = "NPATH_STOP"
 
-# The firmware's own defaults, for a device whose settings shadow does not carry a key yet.
+# The firmware's own defaults, for a device that has not reported a key yet.
 DEFAULTS = {
     EN: 0, BRIGHTNESS: 60, DURATION: 15, LIGHT_THRESHOLD: 20, CONFIRM_MS: 300,
     MODE: 0, START: 1260, STOP: 360,

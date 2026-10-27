@@ -25,6 +25,8 @@ SCAN_INTERVAL = timedelta(seconds=60)
 # The device inventory (names, rooms, hardware) changes rarely; re-read it every so many polls.
 # Homes are read every poll: their armed flag is state, not inventory.
 INVENTORY_REFRESH_EVERY = 10
+# Device settings reads in flight at once during a poll.
+SETTINGS_READS_AT_ONCE = 4
 # A setting written to a device is shown as written until the device reports it, for at most this
 # long: an offline device takes it when it is back, and must not show it as applied forever.
 PENDING_SETTINGS_FOR = timedelta(minutes=10)
@@ -33,7 +35,7 @@ PENDING_SETTINGS_FOR = timedelta(minutes=10)
 ALERT_WINDOW = "30d"
 
 # Hardware revisions as the API reports them in `hw` (stored as "9" or 9).
-# Names as the Phare app shows them (getDeviceModelFromHw). 4-7 are the earlier C1 revisions.
+# Names as the Phare app shows them. 4-7 are the earlier C1 revisions.
 HW_MODEL = {
     4: "Phare C1 (v4)",
     5: "Phare C1 (v5)",

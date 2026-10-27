@@ -14,9 +14,9 @@ from custom_components.phare.const import CONF_BASE_URL, CONF_TOKEN, DEFAULT_BAS
 from .conftest import BASE, FROZEN_NOW, TOKEN, mock_api, payload
 from .test_init import BEDROOM, KITCHEN, entity_id
 
-# What a C1 Pro reports (the firmware defaults), plus internal keys the API would never send:
-# they must not become entities even if they turned up.
-SHADOW = {
+# What a C1 Pro reports (the firmware defaults), plus keys this integration does not offer: they
+# must not become entities even if they turned up.
+REPORTED = {
     "FIRE_ALERT": 1, "REMOTE_IC": 1, "PWR_ALERT": 1, "BAT_ALERT": 1, "CO_ALERT": 1,
     "ALR_TGS_L": 10, "ALR_TGS_L_L": 5, "ALR_TGS_M": 25, "ALR_TGS_M_L": 20, "ALR_TGS_H": 50,
     "ALR_TGS_H_L": 45, "ALR_TGS_C": 100, "ALR_TGS_C_L": 90,
@@ -25,12 +25,12 @@ SHADOW = {
     "TEMP_ALERT": 1, "ALR_TEMP_THR": 30, "ALR_TEMP_L": 28, "ALR_TEMP_DUR": 3600,
     "ALR_VTEMP_THR": 35, "ALR_VTEMP_L": 33,
     "SOUND_ALERT": 1, "ALR_SOUND_M": 85, "ALR_SOUND_H": 100, "ALR_SOUND_OST": 1440,
-    "HEAT_ALERT": 1, "ALR_HEAT_THR": 30, "MOLD_ALERT": 1, "HORN_SIG_BITS": 248,
+    "OTHER_ALERT": 1, "ALR_OTHER_THR": 30,
 }
 UNIQUE = "auth0|000000000000000000000001"
 
 
-def _shadow(aioclient_mock, device, reported):
+def _reported(aioclient_mock, device, reported):
     aioclient_mock.get(
         f"{BASE}/v1/devices/{device}/settings",
         json={"data": {"device_id": device, "reported": reported, "desired": {}}},
@@ -38,14 +38,14 @@ def _shadow(aioclient_mock, device, reported):
 
 
 async def _setup(hass, aioclient_mock, freezer, *, enable=()):
-    """Kitchen is a C1 Pro (hw 10); Bedroom is turned into a C1 Core (hw 8). Both report SHADOW.
+    """Kitchen is a C1 Pro (hw 10); Bedroom is turned into a C1 Core (hw 8). Both report REPORTED.
     `enable` pre-registers those entities enabled, as a user who switched them on would have."""
     devices = payload("devices.json")
     for raw in devices["data"]:
         if raw["device_id"] == BEDROOM:
             raw["hw"] = 8
-    _shadow(aioclient_mock, KITCHEN, SHADOW)
-    _shadow(aioclient_mock, BEDROOM, SHADOW)
+    _reported(aioclient_mock, KITCHEN, REPORTED)
+    _reported(aioclient_mock, BEDROOM, REPORTED)
     freezer.move_to(FROZEN_NOW)
     mock_api(aioclient_mock, devices=devices)
     entry = MockConfigEntry(domain=DOMAIN, unique_id=UNIQUE, title="Test Account",
@@ -73,10 +73,10 @@ async def test_every_customer_setting_is_offered_on_a_c1_pro(hass, aioclient_moc
         assert _registry(hass, "number", KITCHEN, key) is not None, key
 
 
-async def test_internal_keys_never_become_entities(hass, aioclient_mock, freezer) -> None:
+async def test_keys_not_in_the_catalog_never_become_entities(hass, aioclient_mock, freezer) -> None:
     await _setup(hass, aioclient_mock, freezer)
     for platform in ("switch", "number"):
-        for key in ("HEAT_ALERT", "ALR_HEAT_THR", "MOLD_ALERT", "HORN_SIG_BITS", "MOV_ALERT", "REMOTE_IC"):
+        for key in ("OTHER_ALERT", "ALR_OTHER_THR", "MOV_ALERT", "REMOTE_IC"):
             assert _registry(hass, platform, KITCHEN, key) is None, (platform, key)
 
 
@@ -91,8 +91,8 @@ async def test_a_c1_core_offers_only_the_settings_of_its_sensors(hass, aioclient
 
 async def test_a_key_the_device_does_not_report_is_not_offered(hass, aioclient_mock, freezer) -> None:
     devices = payload("devices.json")
-    older = {k: v for k, v in SHADOW.items() if k not in ("ALR_TGS_L", "ALR_TGS_L_L")}
-    _shadow(aioclient_mock, KITCHEN, older)
+    older = {k: v for k, v in REPORTED.items() if k not in ("ALR_TGS_L", "ALR_TGS_L_L")}
+    _reported(aioclient_mock, KITCHEN, older)
     freezer.move_to(FROZEN_NOW)
     mock_api(aioclient_mock, devices=devices)
     entry = MockConfigEntry(domain=DOMAIN, unique_id=UNIQUE, data={CONF_TOKEN: TOKEN, CONF_BASE_URL: DEFAULT_BASE_URL})

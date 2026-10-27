@@ -1,4 +1,4 @@
-"""The night path light's settings in Home Assistant, against a mocked settings shadow."""
+"""The night path light's settings in Home Assistant, against mocked device settings."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from homeassistant.exceptions import HomeAssistantError
 from .conftest import BASE, mock_api, payload
 from .test_init import BEDROOM, KITCHEN, entity_id, setup_entry
 
-SHADOW = {"NPATH_EN": 1, "NPATH_BRIGHT": 40, "NPATH_DUR_S": 30, "NPATH_LIGHT_PCT": 20,
-          "NPATH_ON_MS": 600, "NPATH_MODE": 3, "NPATH_START": 1260, "NPATH_STOP": 360, "TZ_OFFSET_MIN": 0}
+REPORTED = {"NPATH_EN": 1, "NPATH_BRIGHT": 40, "NPATH_DUR_S": 30, "NPATH_LIGHT_PCT": 20,
+          "NPATH_ON_MS": 600, "NPATH_MODE": 3, "NPATH_START": 1260, "NPATH_STOP": 360}
 
 
 def _devices(kitchen_fw=("v1.1.0", "v1.1.0"), bedroom_hw=8):
@@ -31,7 +31,7 @@ def _spaces(tz="Europe/Madrid"):
 
 
 def _settings(aioclient_mock, reported=None, device=KITCHEN, status=200):
-    body = {"data": {"device_id": device, "reported": SHADOW if reported is None else reported, "desired": {}}}
+    body = {"data": {"device_id": device, "reported": REPORTED if reported is None else reported, "desired": {}}}
     aioclient_mock.get(f"{BASE}/v1/devices/{device}/settings", status=status, json=body if status == 200 else {"error": "x"})
 
 
@@ -129,3 +129,32 @@ async def test_a_refused_write_says_why(hass, aioclient_mock, freezer) -> None:
     aioclient_mock.post(f"{BASE}/v1/devices/{KITCHEN}/settings", status=403, json={"message": "Forbidden"})
     with pytest.raises(HomeAssistantError, match="control scope"):
         await hass.services.async_call("number", "set_value", {ATTR_ENTITY_ID: _state(hass, "number", "night_path_brightness").entity_id, "value": 80}, blocking=True)
+
+
+async def test_a_device_whose_settings_cannot_be_read_is_retried_with_the_inventory_not_every_poll(
+    hass, aioclient_mock, freezer
+) -> None:
+    from datetime import timedelta
+
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    from custom_components.phare.const import INVENTORY_REFRESH_EVERY, SCAN_INTERVAL
+
+    _settings(aioclient_mock, status=403)
+    await setup_entry(hass, aioclient_mock, freezer, devices=_devices(), spaces=_spaces())
+
+    def reads():
+        return sum(1 for c in aioclient_mock.mock_calls
+                   if c[0] == "GET" and str(c[1]).endswith(f"/v1/devices/{KITCHEN}/settings"))
+
+    assert reads() == 1
+    for _ in range(INVENTORY_REFRESH_EVERY - 2):
+        freezer.tick(SCAN_INTERVAL + timedelta(seconds=1))
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+    assert reads() == 1, "not on the ordinary polls in between"
+    for _ in range(2):
+        freezer.tick(SCAN_INTERVAL + timedelta(seconds=1))
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+    assert reads() == 2, "again with the next inventory read"

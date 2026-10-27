@@ -31,7 +31,7 @@ def mock_api(aioclient_mock, *, spaces=None, spaces_data=None, statuses=None, al
     aioclient_mock.get(f"{BASE}/v1/spaces/data", json=spaces_data or payload("spaces_data.json"))
     aioclient_mock.get(f"{BASE}/v1/devices/status", json=statuses or payload("devices_status.json"))
     aioclient_mock.get(f"{BASE}/v1/alerts", json=alerts or payload("alerts.json"))
-    # Every device's settings shadow, empty unless a test registered its own first (the first
+    # Every device's settings, empty unless a test registered its own first (the first
     # matching mock answers).
     for device_id in sorted(_device_ids(devices or payload("devices.json"),
                                         spaces_data or payload("spaces_data.json"),

@@ -186,7 +186,8 @@ class PhareApiClient:
         return await self._data("POST", f"/v1/spaces/{space_id}", json=patch) or {}
 
     async def device_settings(self, device_id: str) -> dict[str, Any]:
-        """The device's settings shadow: `reported` is what the device has applied."""
+        """The device's settings: `reported` is what the device has applied, `desired` what was
+        asked and not yet applied."""
         return await self._data("GET", f"/v1/devices/{device_id}/settings") or {}
 
     async def update_device_settings(self, device_id: str, settings: dict[str, int]) -> dict[str, Any]:

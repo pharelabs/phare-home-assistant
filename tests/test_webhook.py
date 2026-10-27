@@ -318,7 +318,7 @@ async def test_losing_the_external_url_forgets_the_webhook(hass, aioclient_mock,
     assert len(registration_calls(aioclient_mock)) == 1
 
 
-@pytest.mark.parametrize("code", ["bp", "hs", "not_a_type"])
+@pytest.mark.parametrize("code", ["zz", "not_a_type"])
 async def test_a_pushed_alert_of_a_type_not_exposed_leaves_no_trace(hass, aioclient_mock, freezer, hass_client_no_auth, code) -> None:
     entry = await setup_with_webhook(hass, aioclient_mock, freezer)
     events = []

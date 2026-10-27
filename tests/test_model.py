@@ -256,10 +256,10 @@ def test_every_chip_reported_shows_in_order_and_missing_ones_are_left_out():
 
 def test_the_device_list_keeps_every_firmware_the_mac_and_the_iccid():
     data = model.build_data(
-        [], [{"device_id": "119", "hw": "PH01_07", "fw_esp": "v0.6.2", "fw_efr": "v0.6.1", "fw_nrf": "v0.6.2",
+        [], [{"device_id": "D100", "hw": "PH01_07", "fw_esp": "v0.6.2", "fw_efr": "v0.6.1", "fw_nrf": "v0.6.2",
               "mac": "a1:b2:c3:d4:e5:f6", "iccid": "8900000000000000000"}], {}, [], {},
     )
-    device = data.devices["119"]
+    device = data.devices["D100"]
     assert device.hw == 7
     assert device.firmware == {"fw_esp": "v0.6.2", "fw_efr": "v0.6.1", "fw_nrf": "v0.6.2"}
     assert (device.mac, device.iccid) == ("a1:b2:c3:d4:e5:f6", "8900000000000000000")
@@ -281,7 +281,7 @@ night_path = _load("night_path")
 
 def _device(hw=10, esp="v1.1.0", efr="v1.1.0"):
     firmware = {k: v for k, v in (("fw_esp", esp), ("fw_efr", efr)) if v}
-    return model.PhareDevice(device_id="119", hw=hw, firmware=firmware)
+    return model.PhareDevice(device_id="D100", hw=hw, firmware=firmware)
 
 
 @pytest.mark.parametrize(

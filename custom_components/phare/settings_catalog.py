@@ -1,12 +1,12 @@
 """The alarm settings a customer may change, as Home Assistant shows them.
 
-Plain Python, no Home Assistant import. Each entry is one key of the device's settings shadow,
-exactly the keys the API lets a customer read and write. The `*_ALERT` flags and the thresholds
+Plain Python, no Home Assistant import. Each entry is one of the device settings the API lets a
+customer read and write. The `*_ALERT` flags and the thresholds
 decide when the device raises an alert to the cloud, and so what the customer is told: they do not
 change whether the alarm itself sounds.
 
-An entity exists for a key only when the device's hardware has the sensor behind it and its
-settings shadow reports the key: a key the firmware does not know is never offered.
+An entity exists for a key only when the device's hardware has the sensor behind it and the
+device reports the key: a key the firmware does not know is never offered.
 """
 
 from __future__ import annotations

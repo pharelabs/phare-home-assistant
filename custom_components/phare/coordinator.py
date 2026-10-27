@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta
 import logging
 from typing import Any
@@ -20,7 +21,14 @@ from .api import (
     PhareRateLimitedError,
 )
 from . import night_path
-from .const import ALERT_WINDOW, DOMAIN, INVENTORY_REFRESH_EVERY, PENDING_SETTINGS_FOR, SCAN_INTERVAL
+from .const import (
+    ALERT_WINDOW,
+    DOMAIN,
+    INVENTORY_REFRESH_EVERY,
+    PENDING_SETTINGS_FOR,
+    SCAN_INTERVAL,
+    SETTINGS_READS_AT_ONCE,
+)
 from .model import (
     PhareData,
     PhareDevice,
@@ -75,6 +83,9 @@ class PhareCoordinator(DataUpdateCoordinator[PhareData]):
         self.settings: dict[str, dict[str, int]] = {}
         # device_id -> key -> (value written, until when it is shown before the device reports it)
         self._pending: dict[str, dict[str, tuple[int, datetime]]] = {}
+        # Devices whose settings could not be read: tried again with the next inventory read, not
+        # on every poll.
+        self._settings_failed: set[str] = set()
 
     async def _async_update_data(self) -> PhareData:
         inventory_read = False
@@ -123,15 +134,28 @@ class PhareCoordinator(DataUpdateCoordinator[PhareData]):
                 del self._pending[device_id]
         wanted = [
             device.device_id for device in data.devices.values()
-            if all_devices or device.device_id in self._pending or device.device_id not in self.settings
+            if all_devices
+            or device.device_id in self._pending
+            or (device.device_id not in self.settings and device.device_id not in self._settings_failed)
         ]
-        for device_id in wanted:
-            try:
-                shadow = await self.client.device_settings(device_id)
-            except (PhareApiError, PhareConnectionError) as err:
-                _LOGGER.debug("Could not read settings of %s: %s", device_id, err)
+        # A few at a time: the poll that carries the alarms should not wait on one read per device
+        # in a row, nor send them all at once.
+        limit = asyncio.Semaphore(SETTINGS_READS_AT_ONCE)
+
+        async def read(device_id: str) -> tuple[str, dict[str, Any] | None]:
+            async with limit:
+                try:
+                    return device_id, await self.client.device_settings(device_id)
+                except (PhareApiError, PhareConnectionError) as err:
+                    _LOGGER.debug("Could not read settings of %s: %s", device_id, err)
+                    return device_id, None
+
+        for device_id, response in await asyncio.gather(*(read(d) for d in wanted)):
+            if response is None:
+                self._settings_failed.add(device_id)
                 continue
-            reported = {k: v for k, v in (shadow.get("reported") or {}).items() if isinstance(v, int)}
+            self._settings_failed.discard(device_id)
+            reported = {k: v for k, v in (response.get("reported") or {}).items() if isinstance(v, int)}
             self.settings[device_id] = reported
             pending = self._pending.get(device_id, {})
             for key in [k for k, (value, _) in pending.items() if reported.get(k) == value]:

@@ -196,7 +196,7 @@ async def test_each_device_is_created_in_its_rooms_area(hass, aioclient_mock, fr
 
 def test_a_room_name_carries_its_home_when_the_account_has_several() -> None:
     space = PhareSpace(space_id="sp_1", address="Flat 1 Maldon")
-    device = PhareDevice(device_id="119", room="Living Room")
+    device = PhareDevice(device_id="D100", room="Living Room")
     assert suggested_area(device, space, home_count=1) == "Living Room"
     assert suggested_area(device, space, home_count=2) == "Living Room (Flat 1 Maldon)"
     # No room reported: the home is the best place there is.
@@ -270,10 +270,10 @@ async def test_diagnostics_show_readings_without_firmware_internals_or_names(has
 async def test_a_polled_alert_of_a_type_not_exposed_creates_nothing(hass, aioclient_mock, freezer) -> None:
     alerts = payload("alerts.json")
     template = dict(alerts["data"][0])
-    for code in ("bp", "hs"):
+    for code in ("zz", "yy"):
         alerts["data"].append(template | {"type_code": code, "alert_id": f"alert_{KITCHEN}_{code}", "stage": "new"})
     await setup_entry(hass, aioclient_mock, freezer, alerts=alerts)
-    for code in ("bp", "hs"):
+    for code in ("zz", "yy"):
         assert entity_id(hass, "binary_sensor", f"{KITCHEN}_alert_{code}") is None
 
 
@@ -285,7 +285,7 @@ async def test_setup_removes_entities_of_alert_types_no_longer_exposed(hass, aio
     )
     entry.add_to_hass(hass)
     registry = er.async_get(hass)
-    stale = registry.async_get_or_create("binary_sensor", DOMAIN, f"{KITCHEN}_alert_bp", config_entry=entry)
+    stale = registry.async_get_or_create("binary_sensor", DOMAIN, f"{KITCHEN}_alert_zz", config_entry=entry)
     kept = registry.async_get_or_create("binary_sensor", DOMAIN, f"{KITCHEN}_alert_fire", config_entry=entry)
 
     freezer.move_to(FROZEN_NOW)
