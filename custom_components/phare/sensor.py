@@ -28,7 +28,7 @@ except ImportError:
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .coordinator import PhareConfigEntry, PhareCoordinator, pick_reading
+from .coordinator import PhareConfigEntry, PhareCoordinator, battery_percent, pick_reading
 from .entity import PhareDeviceEntity
 
 
@@ -99,7 +99,7 @@ SENSORS: tuple[PhareSensorDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         suggested_display_precision=0,
         entity_registry_enabled_default=False,
-        value_fn=lambda r: pick_reading(r, "battery"),
+        value_fn=battery_percent,
     ),
 )
 
