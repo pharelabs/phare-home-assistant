@@ -6,11 +6,19 @@ plain pytest, and the coordinator stays a thin scheduler around it.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from .const import ALERT_RESOLVED_STAGE, ALERT_TYPE_CODES, READING_KEYS
+from .const import (
+    ALERT_RESOLVED_STAGE,
+    ALERT_TYPE_CODES,
+    BATTERY_EMPTY_V,
+    BATTERY_FULL_V,
+    BATTERY_VOLTAGE_KEY,
+    READING_KEYS,
+)
 
 # A device publishes every 60 s on Wi-Fi and every 300 s on LTE-M. A reading older than this is
 # treated as the device being away, for the devices whose connectivity the API does not report.
@@ -29,13 +37,40 @@ def coerce_hw(value: Any) -> int | None:
         return None
 
 
+def _number(value: Any) -> float | None:
+    """A reading as a float, or None when it is not a finite number. JSON decoding accepts NaN and
+    Infinity, and a bool is an int to Python; neither is a measurement."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
+        return float(value)
+    return None
+
+
 def pick_reading(readings: dict[str, Any], kind: str) -> float | None:
     """The value for a sensor kind, under whichever name the API used."""
     for key in READING_KEYS[kind]:
-        value = readings.get(key)
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
-            return float(value)
+        value = _number(readings.get(key))
+        if value is not None:
+            return value
     return None
+
+
+def battery_percent(readings: dict[str, Any]) -> float | None:
+    """Battery level as a whole percentage of the pack voltage's usable range, or None when the
+    reading carries no finite voltage. Below empty reads 0, above full reads 100.
+
+    Kept step for step with the Phare app's own conversion, so both show the same number for the
+    same reading: the same operations in the same order, and halves rounded up as JavaScript's
+    Math.round does. Python's round() sends halves to the even neighbour (36.5 to 36, where the
+    app shows 37), so it is not used here.
+    """
+    voltage = _number(readings.get(BATTERY_VOLTAGE_KEY))
+    if voltage is None:
+        return None
+    span = BATTERY_FULL_V - BATTERY_EMPTY_V
+    ratio = (voltage - BATTERY_EMPTY_V) / span
+    scaled = min(1.0, max(0.0, ratio)) * 100
+    whole = math.floor(scaled)
+    return float(whole + 1 if scaled - whole >= 0.5 else whole)
 
 
 def parse_ts(value: Any) -> datetime | None:

@@ -71,6 +71,24 @@ async def test_sensors_exist_only_for_what_each_device_reports(hass, aioclient_m
         assert unit == "ppm", key
 
 
+async def test_the_battery_level_reads_the_pack_voltage(hass, aioclient_mock, freezer) -> None:
+    """Disabled by default, so enabled here. The kitchen reports `bat_v` 3.85 (60%) and `bat_t_pc`
+    88, the thermistor; the level must be the first. The hallway never reported a voltage."""
+    entry = await setup_entry(hass, aioclient_mock, freezer)
+    registry = er.async_get(hass)
+    battery = entity_id(hass, "sensor", f"{KITCHEN}_battery")
+    assert registry.async_get(battery).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert entity_id(hass, "sensor", f"{HALLWAY}_battery") is None
+
+    registry.async_update_entity(battery, disabled_by=None)
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(battery)
+    assert float(state.state) == 60.0
+    assert state.attributes["unit_of_measurement"] == "%"
+
+
 async def test_an_offline_device_is_unavailable_except_its_connectivity(hass, aioclient_mock, freezer) -> None:
     await setup_entry(hass, aioclient_mock, freezer)
 

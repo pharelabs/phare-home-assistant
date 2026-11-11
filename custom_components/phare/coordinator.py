@@ -33,6 +33,7 @@ from .model import (
     PhareData,
     PhareDevice,
     PhareSpace,
+    battery_percent,
     build_data,
     coerce_hw,
     merge_alerts,
@@ -46,6 +47,7 @@ __all__ = [
     "PhareData",
     "PhareDevice",
     "PhareSpace",
+    "battery_percent",
     "coerce_hw",
     "pick_reading",
 ]
