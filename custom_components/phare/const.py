@@ -84,5 +84,11 @@ READING_KEYS = {
     "carbon_dioxide": ("co2", "co2_ppm"),
     "voc": ("voc", "voc_ppm"),
     "air_quality": ("iaq",),
-    "battery": ("bat_t_pc",),
 }
+
+# Battery level comes from the pack voltage, `bat_v`, mapped linearly from empty to full and
+# clamped at both ends, the same mapping the Phare app uses. `bat_t_pc` is not a charge: it is the
+# charger's thermistor input as a percentage, a temperature reading that falls as the board warms.
+BATTERY_VOLTAGE_KEY = "bat_v"
+BATTERY_EMPTY_V = 3.4
+BATTERY_FULL_V = 4.15

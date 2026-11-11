@@ -57,14 +57,63 @@ def test_every_device_in_the_readings_is_known_even_without_a_devices_row(data):
 
 
 def test_readings_are_read_under_the_devices_own_names():
-    readings = {"tmp_c": 21.5, "hum_c": 45, "co_avg": 0.4, "co": 0.9, "co2": 410, "voc": 0.12, "iaq": 37, "bat_t_pc": 88}
+    readings = {"tmp_c": 21.5, "hum_c": 45, "co_avg": 0.4, "co": 0.9, "co2": 410, "voc": 0.12, "iaq": 37}
     assert model.pick_reading(readings, "temperature") == 21.5
     assert model.pick_reading(readings, "humidity") == 45.0
     assert model.pick_reading(readings, "carbon_monoxide") == 0.4, "the averaged value wins when present"
     assert model.pick_reading(readings, "carbon_dioxide") == 410.0
     assert model.pick_reading(readings, "voc") == 0.12
     assert model.pick_reading(readings, "air_quality") == 37.0
-    assert model.pick_reading(readings, "battery") == 88.0
+
+
+def test_battery_level_comes_from_the_pack_voltage_not_the_thermistor():
+    """`bat_t_pc` is the charger's thermistor input, a temperature, not a charge. A warm board on
+    a nearly flat cell reads a high `bat_t_pc`, so the level must ignore it."""
+    assert model.battery_percent({"bat_v": 3.5, "bat_t_pc": 88}) == 13.0
+    assert model.battery_percent({"bat_t_pc": 88}) is None, "no voltage, no battery level"
+
+
+def test_battery_level_maps_the_voltage_linearly_and_clamps_both_ends():
+    empty, full = const.BATTERY_EMPTY_V, const.BATTERY_FULL_V
+    assert model.battery_percent({"bat_v": empty}) == 0.0
+    assert model.battery_percent({"bat_v": full}) == 100.0
+    assert model.battery_percent({"bat_v": (empty + full) / 2}) == 50.0
+    assert model.battery_percent({"bat_v": 3.0}) == 0.0
+    assert model.battery_percent({"bat_v": 4.29}) == 100.0
+
+
+def test_a_missing_or_non_numeric_battery_voltage_is_none():
+    for readings in (
+        {}, {"bat_v": None}, {"bat_v": "4.0"}, {"bat_v": True},
+        {"bat_v": float("nan")}, {"bat_v": float("inf")}, {"bat_v": float("-inf")},
+    ):
+        assert model.battery_percent(readings) is None, readings
+
+
+@pytest.mark.parametrize(
+    ("volts", "percent"),
+    [
+        (3.0, 0.0),
+        (3.4, 0.0),
+        (3.45, 7.0),
+        (3.5, 13.0),
+        (3.53125, 18.0),
+        (3.55, 20.0),
+        (3.67375, 37.0),
+        (3.7, 40.0),
+        (3.73375, 45.0),
+        (3.775, 50.0),
+        (3.85, 60.0),
+        (4.12, 96.0),
+        (4.15, 100.0),
+        (4.29, 100.0),
+    ],
+)
+def test_battery_level_matches_the_phare_app(volts, percent):
+    """The Phare app tests this same table against its own conversion, so a reading shows one
+    battery level in both. 3.53125, 3.67375 and 3.73375 land exactly on a half: the app rounds
+    halves up, and Python's round() would show 36 and 44 where the app shows 37 and 45."""
+    assert model.battery_percent({"bat_v": volts}) == percent
 
 
 def test_readings_also_accept_the_published_spec_names():
@@ -78,6 +127,8 @@ def test_a_missing_or_non_numeric_reading_is_none():
     assert model.pick_reading({}, "temperature") is None
     assert model.pick_reading({"tmp_c": "21.5"}, "temperature") is None
     assert model.pick_reading({"tmp_c": True}, "temperature") is None
+    for value in (float("nan"), float("inf"), float("-inf")):
+        assert model.pick_reading({"tmp_c": value}, "temperature") is None, value
 
 
 def test_hw_is_read_as_an_integer_however_it_arrives():
@@ -196,10 +247,11 @@ def test_recorded_readings_use_the_devices_field_names(recorded_data):
     with_readings = [d for d in recorded_data.devices.values() if d.readings]
     assert len(with_readings) == 2
     for device in with_readings:
-        assert {"tmp_c", "hum_c", "co", "co2", "voc", "iaq", "bat_t_pc", "mains_on"} <= set(device.readings)
+        assert {"tmp_c", "hum_c", "co", "co2", "voc", "iaq", "bat_v", "mains_on"} <= set(device.readings)
         assert "temperature" not in device.readings, "the published spec's names are not what the API sends"
-        for kind in ("temperature", "humidity", "carbon_monoxide", "carbon_dioxide", "voc", "air_quality", "battery"):
+        for kind in ("temperature", "humidity", "carbon_monoxide", "carbon_dioxide", "voc", "air_quality"):
             assert model.pick_reading(device.readings, kind) is not None, kind
+        assert model.battery_percent(device.readings) is not None
 
 
 def test_recorded_token_sees_one_device_directly_and_one_through_its_home(recorded_data):
