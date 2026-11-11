@@ -127,6 +127,8 @@ def test_a_missing_or_non_numeric_reading_is_none():
     assert model.pick_reading({}, "temperature") is None
     assert model.pick_reading({"tmp_c": "21.5"}, "temperature") is None
     assert model.pick_reading({"tmp_c": True}, "temperature") is None
+    for value in (float("nan"), float("inf"), float("-inf")):
+        assert model.pick_reading({"tmp_c": value}, "temperature") is None, value
 
 
 def test_hw_is_read_as_an_integer_however_it_arrives():

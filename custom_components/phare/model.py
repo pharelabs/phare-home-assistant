@@ -37,12 +37,20 @@ def coerce_hw(value: Any) -> int | None:
         return None
 
 
+def _number(value: Any) -> float | None:
+    """A reading as a float, or None when it is not a finite number. JSON decoding accepts NaN and
+    Infinity, and a bool is an int to Python; neither is a measurement."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
+        return float(value)
+    return None
+
+
 def pick_reading(readings: dict[str, Any], kind: str) -> float | None:
     """The value for a sensor kind, under whichever name the API used."""
     for key in READING_KEYS[kind]:
-        value = readings.get(key)
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
-            return float(value)
+        value = _number(readings.get(key))
+        if value is not None:
+            return value
     return None
 
 
@@ -55,8 +63,8 @@ def battery_percent(readings: dict[str, Any]) -> float | None:
     Math.round does. Python's round() sends halves to the even neighbour (36.5 to 36, where the
     app shows 37), so it is not used here.
     """
-    voltage = readings.get(BATTERY_VOLTAGE_KEY)
-    if not isinstance(voltage, (int, float)) or isinstance(voltage, bool) or not math.isfinite(voltage):
+    voltage = _number(readings.get(BATTERY_VOLTAGE_KEY))
+    if voltage is None:
         return None
     span = BATTERY_FULL_V - BATTERY_EMPTY_V
     ratio = (voltage - BATTERY_EMPTY_V) / span
