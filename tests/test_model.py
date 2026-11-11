@@ -57,7 +57,7 @@ def test_every_device_in_the_readings_is_known_even_without_a_devices_row(data):
 
 
 def test_readings_are_read_under_the_devices_own_names():
-    readings = {"tmp_c": 21.5, "hum_c": 45, "co_avg": 0.4, "co": 0.9, "co2": 410, "voc": 0.12, "iaq": 37, "bat_t_pc": 88}
+    readings = {"tmp_c": 21.5, "hum_c": 45, "co_avg": 0.4, "co": 0.9, "co2": 410, "voc": 0.12, "iaq": 37}
     assert model.pick_reading(readings, "temperature") == 21.5
     assert model.pick_reading(readings, "humidity") == 45.0
     assert model.pick_reading(readings, "carbon_monoxide") == 0.4, "the averaged value wins when present"
@@ -247,7 +247,7 @@ def test_recorded_readings_use_the_devices_field_names(recorded_data):
     with_readings = [d for d in recorded_data.devices.values() if d.readings]
     assert len(with_readings) == 2
     for device in with_readings:
-        assert {"tmp_c", "hum_c", "co", "co2", "voc", "iaq", "bat_t_pc", "mains_on"} <= set(device.readings)
+        assert {"tmp_c", "hum_c", "co", "co2", "voc", "iaq", "bat_v", "mains_on"} <= set(device.readings)
         assert "temperature" not in device.readings, "the published spec's names are not what the API sends"
         for kind in ("temperature", "humidity", "carbon_monoxide", "carbon_dioxide", "voc", "air_quality"):
             assert model.pick_reading(device.readings, kind) is not None, kind
